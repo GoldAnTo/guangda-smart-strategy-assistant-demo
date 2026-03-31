@@ -1,3 +1,5 @@
+import 'dotenv/config'
+
 function getModelConfig() {
   return {
     url: process.env.MODEL_API_URL,
@@ -6,18 +8,13 @@ function getModelConfig() {
   }
 }
 
-async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = 30000) {
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), timeoutMs)
-
-  try {
-    return await fetch(url, {
-      ...options,
-      signal: controller.signal
-    })
-  } finally {
-    clearTimeout(timer)
-  }
+async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = 60000) {
+  const timeoutPromise = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error(`请求超时（${timeoutMs / 1000}s），请重试`)), timeoutMs)
+  )
+  const fetchPromise = fetch(url, options)
+  const response = await Promise.race([fetchPromise, timeoutPromise]) as Response
+  return response
 }
 
 async function requestModel(prompt: string, systemContent: string, temperature: number) {
