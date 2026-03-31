@@ -129,10 +129,6 @@
               <div class="card-stars">
                 <span v-for="n in 5" :key="n" :class="n <= (s.outlookStars || 3) ? 'filled' : ''">★</span>
               </div>
-              <!-- AI推荐标识（移入 card-top-left，正常流） -->
-              <span class="card-ai-chip" v-if="s.annualReturn >= 15 && s.winRate >= 80">
-                <span>⭐</span> AI优选
-              </span>
             </div>
             <!-- 风险等级标签 -->
             <div class="risk-badge" :class="'risk-' + ((s as any).riskLevel || 'R3')">
@@ -140,7 +136,13 @@
             </div>
           </div>
 
-          <h3 class="card-name">{{ s.name }}</h3>
+          <h3 class="card-name">
+            {{ s.name }}
+            <!-- AI优选 移到策略名右侧作为显著标识 -->
+            <span class="card-ai-chip" v-if="s.annualReturn >= 15 && s.winRate >= 80">
+              ⭐ AI优选
+            </span>
+          </h3>
           <div class="card-owner">{{ s.owner }}</div>
 
           <!-- 指标墙 -->
@@ -317,7 +319,7 @@ onMounted(loadStrategies)
 </script>
 
 <style scoped>
-.home-page { display: flex; flex-direction: column; gap: 0; height: 100%; overflow-y: auto; box-sizing: border-box; }
+.home-page { display: flex; flex-direction: column; gap: 0; height: 100%; overflow: hidden; box-sizing: border-box; }
 
 /* 顶部 */
 .home-header { display: flex; justify-content: space-between; align-items: flex-end; padding: 20px 16px 16px; gap: 24px; flex-wrap: wrap; border-bottom: 1px solid rgba(23,55,91,0.08); }
@@ -401,7 +403,15 @@ onMounted(loadStrategies)
 .cat-group-avg strong { font-weight: 700; margin-left: 4px; }
 
 /* 策略网格 */
-.cat-strategy-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.cat-strategy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  padding: 0 4px;
+}
 
 /* 策略卡片 */
 .strategy-card { padding: 18px; display: flex; flex-direction: column; gap: 8px; cursor: pointer; transition: all 0.25s ease; position: relative; }
@@ -424,14 +434,19 @@ onMounted(loadStrategies)
 /* AI推荐徽章 */
 .card-ai-chip {
   display: inline-flex; align-items: center; gap: 3px;
-  font-size: 10px; font-weight: 700;
-  padding: 2px 7px; border-radius: 6px;
-  background: rgba(158,114,46,0.12); border: 1px solid rgba(158,114,46,0.3);
+  font-size: 11px; font-weight: 700;
+  padding: 3px 10px; border-radius: 6px;
+  background: linear-gradient(135deg, rgba(158,114,46,0.15), rgba(194,74,0,0.1));
+  border: 1.5px solid rgba(158,114,46,0.4);
   color: var(--gold);
-  margin-left: 6px;
+  margin-left: 10px;
+  vertical-align: middle;
   flex-shrink: 0;
 }
-.card-name { margin: 0; font-size: 17px; font-weight: 700; color: var(--text); line-height: 1.3; }
+.card-name {
+  margin: 0; font-size: 17px; font-weight: 700; color: var(--text); line-height: 1.3;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+}
 .card-owner { font-size: 12px; color: var(--muted); }
 
 /* 指标墙 */
@@ -454,7 +469,7 @@ onMounted(loadStrategies)
 .card-action { font-size: 13px; color: var(--gold); font-weight: 600; }
 
 /* 加载骨架 */
-.loading-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; padding: 16px 16px; }
+.loading-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; overflow-y: auto; flex: 1; min-height: 0; padding: 0 4px; }
 .skeleton-card { height: 220px; border-radius: 20px; background: rgba(23,55,91,0.06); animation: shimmer 1.5s infinite; }
 @keyframes shimmer { 0%,100% { opacity: 0.5 } 50% { opacity: 1 } }
 
