@@ -40,9 +40,9 @@ router.post('/api/attribution', async (req, res) => {
     }
     const riskText = riskMap[r.riskLevel] || r.riskLevel || '中等风险'
 
-    // 构建归因分析 prompt
+    // 构建归因分析 prompt — 返回结构化 JSON
     const prompt = `
-你是一名基金策略归因分析专家。请对以下策略在${period}期间的表现进行深度归因分析。
+你是一名基金策略归因分析专家。请对以下策略在${period}期间的表现进行深度归因分析，返回结构化 JSON。
 
 【策略基本信息】
 - 名称：${r.name}
@@ -58,28 +58,35 @@ router.post('/api/attribution', async (req, res) => {
 - 策略逻辑：${r.logicSummary || '暂无说明'}
 - 策略标签：${(r.tags || []).join('、')}
 
-【分析要求】
-请从以下四个维度进行归因分析，每个维度给出 2-3 句专业、通俗的解释：
-
-1. **市场环境因素**：该策略在${period}期间的表现与整体市场环境的关系（牛市/熊市/震荡市下各类型策略的典型表现）
-
-2. **策略特性归因**：结合策略的风险等级、资产定位、投资逻辑，分析该策略表现的驱动因素是什么（例如：股票多头策略受A股走势驱动；债券增强受利率环境影响；量化策略受市场波动率影响等）
-
-3. **风险收益特征解读**：结合胜率、最大回撤、夏普比率，评价该策略的风险调整后收益质量。重点说明：回撤主要发生在什么情境下？胜率高是否代表收益稳定？
-
-4. **配置价值与风险提示**：该策略在投资组合中的价值是什么？适合什么样的投资者？需要注意哪些风险？给出具体的持有建议（持有期限、关注指标等）
-
-【输出格式】
-请直接输出分析文字，不要使用 Markdown 格式，用自然段落形式表达。语言专业但不晦涩，让非专业投资者也能理解。
+【输出格式要求】
+请返回以下 JSON 结构（不要包含任何 markdown 格式，只输出纯 JSON）：
+{
+  "marketInsight": "市场环境因素的归因分析，2-3句话，专业但通俗",
+  "strategyDriver": "策略特性归因，2-3句话，说明核心驱动因素",
+  "riskRewardAnalysis": "风险收益特征解读，2-3句话，评价收益质量",
+  "configValue": "配置价值与风险提示，3-4句话，给出具体持有建议",
+  "summary": "一句话总结（供领导层快速了解）",
+  "riskWarning": "一句简短的风险提示语"
+}
 `
 
-    const analysis = await aiService.generateText(prompt)
+    let raw = await aiService.generateText(prompt)
+    // 尝试从 markdown 代码块中提取 JSON
+    const jsonMatch = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/) || raw.match(/^\s*(\{[\s\S]*\})\s*$/)
+    if (jsonMatch) raw = jsonMatch[1]
+    const parsed = JSON.parse(raw.trim())
 
     return res.json(successResponse({
       strategyName: r.name,
       period,
       periodReturn: pr,
-      analysis,
+      annualReturn: r.annualReturn,
+      maxDrawdown: r.maxDrawdown,
+      winRate: r.winRate,
+      volatility: r.volatility,
+      sharpe: r.sharpe,
+      riskLevel: riskText,
+      ...parsed,
     }, requestId))
 
   } catch (err: any) {

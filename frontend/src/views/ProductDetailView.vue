@@ -198,22 +198,80 @@
       <!-- 加载状态 -->
       <div class="attr-loading" v-if="attrLoading">
         <div class="spinner-ring"></div>
-        <div class="al-text">AI 正在深度分析策略归因...</div>
+        <div class="al-text">AI 正在从四个维度深度分析策略归因...</div>
       </div>
 
       <!-- 归因结果 -->
       <div class="attr-body" v-if="attrResult && !attrLoading">
-        <div class="ab-meta">
-          <span class="ab-strategy">{{ attrResult.strategyName }}</span>
-          <span class="ab-period">{{ attrResult.period }}</span>
-          <span class="ab-return" :class="attrResult.periodReturn >= 0 ? 'gain' : 'loss'">
-            {{ attrResult.periodReturn >= 0 ? '+' : '' }}{{ attrResult.periodReturn?.toFixed(2) }}%
-          </span>
+        <!-- 顶部指标卡 -->
+        <div class="attr-metrics-row">
+          <div class="am-card">
+            <div class="am-val" :class="attrResult.periodReturn >= 0 ? 'gain' : 'loss'">
+              {{ attrResult.periodReturn >= 0 ? '+' : '' }}{{ attrResult.periodReturn?.toFixed(2) }}%
+            </div>
+            <div class="am-label">{{ attrResult.period }}收益</div>
+          </div>
+          <div class="am-card">
+            <div class="am-val" :class="attrResult.annualReturn >= 0 ? 'gain' : 'loss'">
+              {{ attrResult.annualReturn >= 0 ? '+' : '' }}{{ attrResult.annualReturn?.toFixed(2) }}%
+            </div>
+            <div class="am-label">年化收益</div>
+          </div>
+          <div class="am-card">
+            <div class="am-val loss">-{{ (attrResult.maxDrawdown || 0).toFixed(2) }}%</div>
+            <div class="am-label">最大回撤</div>
+          </div>
+          <div class="am-card">
+            <div class="am-val">{{ (attrResult.sharpe || 0).toFixed(2) }}</div>
+            <div class="am-label">夏普比率</div>
+          </div>
+          <div class="am-card">
+            <div class="am-val">{{ (attrResult.winRate || 0).toFixed(0) }}%</div>
+            <div class="am-label">胜率</div>
+          </div>
         </div>
-        <div class="ab-analysis">{{ attrResult.analysis }}</div>
-        <button class="ab-regen" @click="loadAttr">
-          🔄 重新分析
-        </button>
+
+        <!-- 领导层一句话总结 -->
+        <div class="attr-summary" v-if="attrResult.summary">
+          <span class="as-icon">📋</span>
+          <span class="as-text">{{ attrResult.summary }}</span>
+        </div>
+
+        <!-- 四维度归因卡片 -->
+        <div class="attr-dimensions">
+          <div class="ad-card market-card">
+            <div class="ad-icon">🌍</div>
+            <div class="ad-title">市场环境因素</div>
+            <div class="ad-body">{{ attrResult.marketInsight }}</div>
+          </div>
+          <div class="ad-card driver-card">
+            <div class="ad-icon">⚙️</div>
+            <div class="ad-title">策略特性归因</div>
+            <div class="ad-body">{{ attrResult.strategyDriver }}</div>
+          </div>
+          <div class="ad-card risk-card">
+            <div class="ad-icon">📉</div>
+            <div class="ad-title">风险收益解读</div>
+            <div class="ad-body">{{ attrResult.riskRewardAnalysis }}</div>
+          </div>
+          <div class="ad-card value-card">
+            <div class="ad-icon">💡</div>
+            <div class="ad-title">配置价值与建议</div>
+            <div class="ad-body">{{ attrResult.configValue }}</div>
+          </div>
+        </div>
+
+        <!-- 风险提示 -->
+        <div class="attr-warning" v-if="attrResult.riskWarning">
+          <span class="aw-icon">⚠️</span>
+          <span class="aw-text">{{ attrResult.riskWarning }}</span>
+        </div>
+
+        <div class="attr-actions">
+          <button class="ab-regen" @click="loadAttr">
+            🔄 重新分析
+          </button>
+        </div>
       </div>
 
       <!-- 未加载状态 -->
@@ -736,12 +794,37 @@ async function loadAttr() {
 .al-text { font-size: 13px; color: var(--muted); }
 
 .attr-body { margin-top: 14px; display: flex; flex-direction: column; gap: 12px; }
-.ab-meta { display: flex; align-items: center; gap: 10px; }
-.ab-strategy { font-size: 13px; font-weight: 700; color: var(--text); }
-.ab-period { font-size: 11px; color: var(--muted); padding: 2px 8px; border-radius: 6px; background: rgba(23,55,91,0.06); }
-.ab-return { font-size: 14px; font-weight: 800; font-family: 'DIN Alternate','Bahnschrift',sans-serif; }
-.ab-analysis { font-size: 13px; color: var(--muted); line-height: 1.9; padding: 14px 16px; border-radius: 10px; background: rgba(23,55,91,0.04); white-space: pre-wrap; }
-.ab-regen { align-self: flex-start; padding: 6px 14px; border-radius: 8px; border: 1px solid rgba(23,55,91,0.15); background: transparent; color: var(--muted); cursor: pointer; font-size: 12px; transition: all 0.2s; }
+
+/* 顶部指标行 */
+.attr-metrics-row { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; }
+.am-card { flex: 1; min-width: 80px; padding: 12px 10px; border-radius: 10px; background: rgba(23,55,91,0.04); text-align: center; }
+.am-val { font-size: 20px; font-weight: 900; font-family: 'DIN Alternate','Bahnschrift',sans-serif; line-height: 1; }
+.am-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
+
+/* 领导层总结 */
+.attr-summary { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 10px; background: rgba(23,55,91,0.06); border: 1px solid rgba(23,55,91,0.1); }
+.as-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.as-text { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.7; }
+
+/* 四维度卡片 */
+.attr-dimensions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.ad-card { padding: 14px 16px; border-radius: 12px; border: 1.5px solid; }
+.market-card { background: rgba(88,199,255,0.05); border-color: rgba(88,199,255,0.2); }
+.driver-card { background: rgba(139,92,246,0.05); border-color: rgba(139,92,246,0.2); }
+.risk-card { background: rgba(248,113,113,0.05); border-color: rgba(248,113,113,0.2); }
+.value-card { background: rgba(74,222,128,0.05); border-color: rgba(74,222,128,0.2); }
+.ad-icon { font-size: 18px; margin-bottom: 6px; }
+.ad-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+.ad-body { font-size: 12px; color: var(--muted); line-height: 1.85; }
+
+/* 风险提示 */
+.attr-warning { display: flex; align-items: flex-start; gap: 8px; padding: 10px 14px; border-radius: 8px; background: rgba(249,115,22,0.07); border: 1px solid rgba(249,115,22,0.15); }
+.aw-icon { font-size: 15px; flex-shrink: 0; }
+.aw-text { font-size: 12px; color: #d97706; line-height: 1.7; }
+
+/* 操作行 */
+.attr-actions { display: flex; justify-content: flex-end; }
+.ab-regen { padding: 6px 14px; border-radius: 8px; border: 1px solid rgba(23,55,91,0.15); background: transparent; color: var(--muted); cursor: pointer; font-size: 12px; transition: all 0.2s; }
 .ab-regen:hover { border-color: var(--blue); color: var(--blue); }
 
 .attr-start { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 32px 20px; text-align: center; }
@@ -750,4 +833,8 @@ async function loadAttr() {
 .as-sub { font-size: 13px; color: var(--muted); line-height: 1.7; max-width: 480px; }
 .as-btn { margin-top: 8px; padding: 10px 24px; border-radius: 12px; border: none; background: linear-gradient(135deg,#9e722e,#c24a00); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
 .as-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(158,114,46,0.3); }
+
+@media (max-width: 600px) {
+  .attr-dimensions { grid-template-columns: 1fr; }
+}
 </style>
