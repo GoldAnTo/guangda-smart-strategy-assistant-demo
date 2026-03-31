@@ -61,7 +61,7 @@
             </div>
             <div class="lib-item-metric">
               <div class="lib-ret" :class="s.annualReturn >= 0 ? 'gain' : 'loss'">
-                {{ s.annualReturn >= 0 ? '+' : '' }}{{ s.annualReturn.toFixed(2) }}%
+                {{ fmt(s.annualReturn) }}%
               </div>
               <div class="lib-ret-label">年化</div>
             </div>
@@ -159,27 +159,27 @@
               <div class="pkpi-card">
                 <div class="pkpi-label">组合年化收益</div>
                 <div class="pkpi-val" :class="result!.portfolioReturn >= 0 ? 'gain' : 'loss'">
-                  {{ result!.portfolioReturn >= 0 ? '+' : '' }}{{ result!.portfolioReturn.toFixed(2) }}%
+                  {{ fmt(result!.portfolioReturn) }}%
                 </div>
                 <div class="pkpi-compare" v-if="selected.length > 1">
-                  vs 简单平均 {{ simpleAvgReturn.toFixed(2) }}%
+                  vs 简单平均 {{ fmt(simpleAvgReturn, 2, false) }}%
                 </div>
               </div>
               <div class="pkpi-card">
                 <div class="pkpi-label">模拟波动率</div>
-                <div class="pkpi-val">{{ result!.portfolioVolatility.toFixed(2) }}%</div>
+                <div class="pkpi-val">{{ fmt(result!.portfolioVolatility, 2, false) }}%</div>
                 <div class="pkpi-compare" v-if="selected.length > 1">
-                  vs 简单平均 {{ simpleAvgVol.toFixed(2) }}%
+                  vs 简单平均 {{ fmt(simpleAvgVol, 2, false) }}%
                 </div>
               </div>
               <div class="pkpi-card">
                 <div class="pkpi-label">模拟最大回撤</div>
-                <div class="pkpi-val loss">-{{ result!.portfolioMaxDrawdown.toFixed(2) }}%</div>
+                <div class="pkpi-val loss">-{{ fmt(result!.portfolioMaxDrawdown, 2, false) }}%</div>
               </div>
               <div class="pkpi-card">
                 <div class="pkpi-label">夏普比率</div>
                 <div class="pkpi-val" :class="result!.portfolioSharpe >= 1 ? 'gain' : ''">
-                  {{ result!.portfolioSharpe.toFixed(2) }}
+                  {{ fmt(result!.portfolioSharpe, 2, false) }}
                 </div>
               </div>
             </div>
@@ -189,9 +189,9 @@
               <div class="div-title">📊 分散化效果</div>
               <div class="div-desc">
                 通过组合 {{ selected.length }} 条策略，波动率从简单平均的
-                <strong>{{ simpleAvgVol.toFixed(1) }}%</strong>
-                降低至 <strong>{{ result!.portfolioVolatility.toFixed(1) }}%</strong>
-                （降低约 {{ diversificationEffect.toFixed(1) }}%），
+                <strong>{{ fmt(simpleAvgVol, 1, false) }}%</strong>
+                降低至 <strong>{{ fmt(result!.portfolioVolatility, 1, false) }}%</strong>
+                （降低约 {{ fmt(diversificationEffect, 1, false) }}%），
                 {{ diversificationEffect > 0 ? '体现了组合分散化的价值' : '注意相关性较高的策略可能增加组合风险' }}。
               </div>
             </div>
@@ -215,20 +215,20 @@
                 <div class="ct-cell col-metric muted">年化收益</div>
                 <div v-for="item in selected" :key="item.seed" class="ct-cell col-strat">
                   <div class="ct-val" :class="item.annualReturn >= 0 ? 'gain' : 'loss'">
-                    {{ item.annualReturn >= 0 ? '+' : '' }}{{ item.annualReturn.toFixed(2) }}%
+                    {{ fmt(item.annualReturn) }}%
                   </div>
                 </div>
               </div>
               <div class="ct-row" :style="{ gridTemplateColumns: `1fr repeat(${selected.length}, minmax(90px, 1fr))` }">
                 <div class="ct-cell col-metric muted">波动率</div>
                 <div v-for="item in selected" :key="item.seed" class="ct-cell col-strat">
-                  <div class="ct-val">{{ item.volatility?.toFixed(2) || '—' }}%</div>
+                  <div class="ct-val">{{ fmt(item.volatility, 2, false) }}%</div>
                 </div>
               </div>
               <div class="ct-row" :style="{ gridTemplateColumns: `1fr repeat(${selected.length}, minmax(90px, 1fr))` }">
                 <div class="ct-cell col-metric muted">最大回撤</div>
                 <div v-for="item in selected" :key="item.seed" class="ct-cell col-strat">
-                  <div class="ct-val loss">-{{ (item.maxDrawdown || 0).toFixed(2) }}%</div>
+                  <div class="ct-val loss">-{{ fmt(item.maxDrawdown, 2, false) }}%</div>
                 </div>
               </div>
             </div>
@@ -271,6 +271,11 @@ import type { Allocation } from '../services/strategy'
 
 const COLORS = ['#d0680a', '#3a7fbf', '#6abf40', '#c04040', '#8b5cf6', '#d4a017', '#e07020', '#4080c0']
 
+function fmt(v: number | null | undefined, decimals = 2, sign = true): string {
+  if (v == null || typeof v !== 'number' || isNaN(v)) return '—'
+  return (sign && v >= 0 ? '+' : '') + v.toFixed(decimals)
+}
+
 const allStrategies = ref<StrategyItem[]>([])
 const selected = ref<StrategyItem[]>([])
 const allocations = ref<Record<number, number>>({})
@@ -309,7 +314,7 @@ const simpleAvgReturn = computed(() => {
 })
 const simpleAvgVol = computed(() => {
   if (!selected.value.length) return 0
-  return selected.value.reduce((sum, s) => sum + (s.volatility || 0), 0) / selected.value.length
+  return selected.value.reduce((sum, s) => sum + ((s as any).volatilityValue || 0), 0) / selected.value.length
 })
 const diversificationEffect = computed(() => {
   if (!result.value || simpleAvgVol.value === 0) return 0
@@ -420,22 +425,33 @@ async function generateAIInterpretation() {
   aiInterpretation.value = ''
   const strategyNames = selected.value.map(s => s.name).join('、')
   const weights = selected.value.map(s => `${s.name}${allocations.value[s.seed]}%`).join('、')
+  const r = result.value
+  const rtn = fmt(r.portfolioReturn)
+  const vol = fmt(r.portfolioVolatility, 2, false)
+  const dd = fmt(r.portfolioMaxDrawdown, 2, false)
+  const shp = fmt(r.portfolioSharpe, 2, false)
   const prompt = `你是一位专业的私募资管顾问。请用2-3句话简洁解读以下策略组合的特点和风险提示。
 
 组合构成：${strategyNames}，权重分别为：${weights}。
-组合模拟指标：年化收益 ${result.value.portfolioReturn.toFixed(2)}%，波动率 ${result.value.portfolioVolatility.toFixed(2)}%，最大回撤 ${result.value.portfolioMaxDrawdown.toFixed(2)}%，夏普比率 ${result.value.portfolioSharpe.toFixed(2)}。
+组合模拟指标：年化收益 ${rtn}%，波动率 ${vol}%，最大回撤 ${dd}%，夏普比率 ${shp}。
 
 请从以下角度解读：1）这个组合的风险收益特征；2）相比单一策略的优势；3）需要注意的风险点。要求语言简洁专业，适合机构客户理解。`
 
   try {
     const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003'
-    const response = await fetch(`${base}/chat/send`, {
+    const response = await fetch(`${base}/api/portfolio-narrative`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: [{ role: 'user', content: prompt }], stream: false }),
+      body: JSON.stringify({
+        components: r.components,
+        portfolioReturn: r.portfolioReturn,
+        portfolioVolatility: r.portfolioVolatility,
+        portfolioMaxDrawdown: r.portfolioMaxDrawdown,
+        portfolioSharpe: r.portfolioSharpe,
+      }),
     })
     const data = await response.json() as Record<string, unknown>
-    const content = ((data as Record<string, unknown>).data as Record<string, unknown>)?.content as string
+    const content = (data.data as Record<string, string>)?.narrative as string
     aiInterpretation.value = content || '（暂时无法生成解读）'
   } catch {
     aiInterpretation.value = '（AI 解读暂时不可用，请确保 AI 服务已启动）'
@@ -453,15 +469,15 @@ onMounted(async () => {
 .rec-page { display: flex; flex-direction: column; gap: 20px; padding-bottom: 60px; }
 
 /* 标题 */
-.rec-header { padding: 36px 32px 20px; border-bottom: 1px solid rgba(23,55,91,0.08); }
+.rec-header { padding: 20px 16px 16px; border-bottom: 1px solid rgba(23,55,91,0.08); }
 .rec-header h1 { margin: 8px 0 6px; font-size: 34px; }
 .rec-header .page-lead { margin: 0; color: var(--muted); font-size: 14px; }
 
 /* 布局 */
-.rec-layout { display: grid; grid-template-columns: 300px 1fr; gap: 20px; padding: 0 32px; align-items: start; }
+.rec-layout { display: grid; grid-template-columns: 300px 1fr; gap: 20px; padding: 0 16px; align-items: start; max-height: calc(100vh - 140px); overflow: hidden; }
 
 /* 策略库 */
-.strategy-library { position: sticky; top: 90px; padding: 20px; display: flex; flex-direction: column; gap: 14px; max-height: calc(100vh - 120px); overflow: hidden; }
+.strategy-library { position: sticky; top: 80px; padding: 20px; display: flex; flex-direction: column; gap: 14px; max-height: calc(100vh - 160px); overflow: hidden; }
 .lib-head { display: flex; justify-content: space-between; align-items: center; }
 .lib-count { font-size: 12px; color: var(--muted); }
 
@@ -480,7 +496,7 @@ onMounted(async () => {
 .search-input::placeholder { color: var(--muted); }
 
 /* 策略列表 */
-.lib-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; max-height: 420px; }
+.lib-list { flex: 1; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 5px; max-height: none; }
 .lib-list::-webkit-scrollbar { width: 3px; }
 .lib-list::-webkit-scrollbar-thumb { background: rgba(23,55,91,0.15); border-radius: 2px; }
 

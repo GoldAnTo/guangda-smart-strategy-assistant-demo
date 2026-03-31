@@ -15,9 +15,25 @@ export interface StrategyItem {
   positioning: string
   seed: number
   maxDrawdown?: number
-  volatility?: number
+  volatility?: string         // "low" | "medium" | "high" 等文字描述
+  volatilityValue?: number    // 具体数值
   sharpe?: number
   startDate?: string
+  // 增强字段（来自 strategies-enhanced.json）
+  riskLevel?: string
+  riskLevelDisplay?: string
+  investmentHorizon?: string
+  investmentHorizonDisplay?: string
+  liquidity?: string
+  liquidityDisplay?: string
+  returnExpectation?: string
+  returnExpectationDisplay?: string
+  volatilityDisplay?: string
+  minInvestment?: number
+  suitableFor?: string[]
+  notSuitableFor?: string[]
+  matchKeywords?: string[]
+  standardRiskNotice?: string
 }
 
 export interface TimeSeriesPoint {
@@ -36,7 +52,7 @@ export interface TimeSeriesResponse {
 
 function unwrap<T>(responseData: unknown): T {
   const d = responseData as Record<string, unknown>
-  if (d && d.success === true && 'data' in d) {
+  if (d && (d.success === true || d.code === 0) && 'data' in d) {
     return d.data as T
   }
   return responseData as T
@@ -44,14 +60,35 @@ function unwrap<T>(responseData: unknown): T {
 
 export async function listStrategies(): Promise<StrategyItem[]> {
   const response = await apiClient.get('/strategies')
-  const data = unwrap<{ strategies: StrategyItem[] }>(response.data)
-  return Array.isArray(data.strategies) ? data.strategies : []
+  const raw = unwrap<unknown>(response.data)
+  // Java API: raw is the array directly; Node.js API: raw is { strategies: [...] }
+  if (Array.isArray(raw)) return raw as StrategyItem[]
+  const d = raw as Record<string, unknown>
+  return Array.isArray(d?.strategies) ? d.strategies as StrategyItem[] : []
 }
 
 export async function getStrategy(id: string): Promise<StrategyItem> {
   const response = await apiClient.get(`/strategies/${id}`)
-  const data = unwrap<{ strategy: StrategyItem }>(response.data)
-  return data.strategy
+  const raw = unwrap<unknown>(response.data)
+
+  // Case 1: Node.js — { strategy: {...} }
+  if (!Array.isArray(raw) && typeof raw === 'object' && raw !== null && 'strategy' in (raw as Record<string, unknown>)) {
+    return (raw as Record<string, unknown>).strategy as StrategyItem
+  }
+  // Case 2: Java API array — [{...}] or wrapped differently
+  if (Array.isArray(raw) && (raw as unknown[]).length > 0) {
+    const first = (raw as unknown[])[0] as Record<string, unknown>
+    // Java sometimes returns {data: [{...}]} and we already unwrapped once
+    if (typeof first === 'object' && first !== null && !Array.isArray(first)) {
+      // This IS the strategy object
+      return first as unknown as StrategyItem
+    }
+  }
+  // Case 3: Java — raw is already the strategy object
+  if (!Array.isArray(raw) && typeof raw === 'object' && raw !== null) {
+    return raw as StrategyItem
+  }
+  throw new Error(`无法解析策略数据: ${JSON.stringify(raw).substring(0, 100)}`)
 }
 
 export async function getStrategyTimeSeries(id: string, period = 'inception'): Promise<TimeSeriesResponse> {

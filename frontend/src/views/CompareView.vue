@@ -63,7 +63,7 @@
             </div>
             <div class="pick-metric">
               <div class="pick-ret" :class="s.annualReturn >= 0 ? 'gain' : 'loss'">
-                {{ s.annualReturn >= 0 ? '+' : '' }}{{ s.annualReturn.toFixed(2) }}%
+                {{ fmt(s.annualReturn) }}%
               </div>
               <div class="pick-sub">年化收益</div>
             </div>
@@ -126,7 +126,7 @@
                 <div class="ct-cell col-metric muted">年化收益</div>
                 <div v-for="id in selectedIds" :key="id" class="ct-cell col-strat">
                   <span class="ct-val bold" :class="(getStrategy(id)?.annualReturn ?? 0) >= 0 ? 'gain' : 'loss'">
-                    {{ (getStrategy(id)?.annualReturn ?? 0) >= 0 ? '+' : '' }}{{ (getStrategy(id)?.annualReturn ?? 0).toFixed(2) }}%
+                    {{ fmt(getStrategy(id)?.annualReturn) }}%
                   </span>
                 </div>
               </div>
@@ -134,27 +134,27 @@
                 <div class="ct-cell col-metric muted">年度胜率</div>
                 <div v-for="id in selectedIds" :key="id" class="ct-cell col-strat">
                   <span class="ct-val" :class="winRateClass(getStrategy(id)?.winRate ?? 0)">
-                    {{ (getStrategy(id)?.winRate ?? 0).toFixed(1) }}%
+                    {{ fmt(getStrategy(id)?.winRate, 1, false) }}%
                   </span>
                 </div>
               </div>
               <div class="ct-row" :style="gridStyle">
                 <div class="ct-cell col-metric muted">最大回撤</div>
                 <div v-for="id in selectedIds" :key="id" class="ct-cell col-strat">
-                  <span class="ct-val loss">-{{ (getStrategy(id)?.maxDrawdown ?? 0).toFixed(2) }}%</span>
+                  <span class="ct-val loss">-{{ fmt(getStrategy(id)?.maxDrawdown, 2, false) }}%</span>
                 </div>
               </div>
               <div class="ct-row" :style="gridStyle">
                 <div class="ct-cell col-metric muted">年化波动</div>
                 <div v-for="id in selectedIds" :key="id" class="ct-cell col-strat">
-                  <span class="ct-val">{{ (getStrategy(id)?.volatility ?? 0).toFixed(2) }}%</span>
+                  <span class="ct-val">{{ fmt(getStrategy(id)?.volatilityValue, 2, false) }}%</span>
                 </div>
               </div>
               <div class="ct-row" :style="gridStyle">
                 <div class="ct-cell col-metric muted">卡玛比率</div>
                 <div v-for="id in selectedIds" :key="id" class="ct-cell col-strat">
                   <span class="ct-val" :class="(getStrategy(id)?.sharpe ?? 0) > 1 ? 'gain' : ''">
-                    {{ (getStrategy(id)?.sharpe ?? 0).toFixed(2) }}
+                    {{ fmt(getStrategy(id)?.sharpe, 2, false) }}
                   </span>
                 </div>
               </div>
@@ -196,14 +196,14 @@
                     <div class="mkpi-bar-track">
                       <div class="mkpi-bar-fill gain" :style="{ width: Math.min(Math.abs(getStrategy(id)?.annualReturn ?? 0) / maxAnnReturn * 100, 100) + '%' }"></div>
                     </div>
-                    <span class="mkpi-val gain">{{ (getStrategy(id)?.annualReturn ?? 0) >= 0 ? '+' : '' }}{{ (getStrategy(id)?.annualReturn ?? 0).toFixed(1) }}%</span>
+                    <span class="mkpi-val gain">{{ fmt(getStrategy(id)?.annualReturn, 1) }}%</span>
                   </div>
                   <div class="mkpi-bar-item">
                     <span class="mkpi-bar-label">回撤</span>
                     <div class="mkpi-bar-track">
                       <div class="mkpi-bar-fill loss" :style="{ width: Math.min((getStrategy(id)?.maxDrawdown ?? 0) / maxDrawdown * 100, 100) + '%' }"></div>
                     </div>
-                    <span class="mkpi-val loss">-{{ (getStrategy(id)?.maxDrawdown ?? 0).toFixed(1) }}%</span>
+                    <span class="mkpi-val loss">-{{ fmt(getStrategy(id)?.maxDrawdown, 1, false) }}%</span>
                   </div>
                 </div>
               </div>
@@ -313,6 +313,11 @@ function getStrategyColor(id: number) {
 
 function winRateClass(w: number) {
   if (w >= 80) return 'gain'; if (w >= 60) return 'mid'; return 'loss'
+}
+
+function fmt(v: number | null | undefined, decimals = 2, sign = true): string {
+  if (v == null || typeof v !== 'number' || isNaN(v)) return '—'
+  return (sign && v >= 0 ? '+' : '') + v.toFixed(decimals)
 }
 
 function getSuitableTags(id: number): string[] {
@@ -472,7 +477,7 @@ onUnmounted(() => {
   border: 1px solid rgba(255, 255, 255, 0.9);
   box-shadow: 0 4px 24px rgba(41, 61, 84, 0.1);
   border-radius: 20px;
-  padding: 24px 28px;
+  padding: 20px 16px;
 }
 .section-eyebrow { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); margin-bottom: 6px; }
 .section-heading { margin: 0 0 18px; font-size: 20px; font-weight: 700; color: var(--text); }
@@ -481,10 +486,10 @@ onUnmounted(() => {
 .compare-header h1 { margin: 8px 0 6px; font-size: 34px; }
 
 /* 布局 */
-.compare-layout { display: grid; grid-template-columns: 300px 1fr; gap: 20px; align-items: start; }
+.compare-layout { display: grid; grid-template-columns: 300px 1fr; gap: 20px; align-items: start; max-height: calc(100vh - 140px); overflow: hidden; }
 
 /* 左侧选择面板 */
-.selector-panel { position: sticky; top: 90px; padding: 20px; max-height: calc(100vh - 120px); overflow: hidden; display: flex; flex-direction: column; gap: 14px; }
+.selector-panel { position: sticky; top: 80px; padding: 20px; max-height: calc(100vh - 140px); overflow: hidden; display: flex; flex-direction: column; gap: 14px; }
 .panel-head { display: flex; justify-content: space-between; align-items: center; }
 .panel-count { font-size: 12px; color: var(--muted); }
 
@@ -503,7 +508,7 @@ onUnmounted(() => {
 .cat-num { font-size: 10px; }
 
 /* 策略列表 */
-.pick-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; max-height: 500px; }
+.pick-list { flex: 1; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 6px; max-height: none; }
 .pick-list::-webkit-scrollbar { width: 3px; }
 .pick-list::-webkit-scrollbar-thumb { background: rgba(23,55,91,0.15); border-radius: 2px; }
 

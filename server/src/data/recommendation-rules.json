@@ -1,0 +1,294 @@
+{
+  "version": "1.0",
+  "updated": "2026-03-31",
+  "description": "光大资管策略推荐规则引擎 — 基于客户画像的结构化匹配规则",
+
+  "riskMatching": {
+    "conservative": {
+      "allowed": ["R1", "R2", "R3"],
+      "preferred": ["R1", "R2"],
+      "scoreMap": { "R1": 30, "R2": 25, "R3": 15, "R4": 5, "R5": 0 }
+    },
+    "stable": {
+      "allowed": ["R2", "R3", "R4"],
+      "preferred": ["R2", "R3"],
+      "scoreMap": { "R3": 30, "R2": 25, "R4": 20, "R5": 5, "R1": 10 }
+    },
+    "balanced": {
+      "allowed": ["R3", "R4", "R5"],
+      "preferred": ["R3", "R4"],
+      "scoreMap": { "R4": 30, "R3": 25, "R5": 20, "R2": 5, "R1": 0 }
+    },
+    "growth": {
+      "allowed": ["R4", "R5"],
+      "preferred": ["R4", "R5"],
+      "scoreMap": { "R5": 30, "R4": 25, "R3": 5, "R2": 0, "R1": 0 }
+    },
+    "highRisk": {
+      "allowed": ["R5"],
+      "preferred": ["R5"],
+      "scoreMap": { "R5": 30, "R4": 10, "R3": 0, "R2": 0, "R1": 0 }
+    }
+  },
+
+  "horizonMatching": {
+    "short_term": {
+      "description": "半年以内",
+      "compatible": ["short_term"],
+      "partialCompatible": ["medium_term"],
+      "incompatible": ["long_term"],
+      "scoreMap": { "short_term": 20, "medium_term": 8, "long_term": 0 }
+    },
+    "medium_term": {
+      "description": "半年到两年",
+      "compatible": ["medium_term", "short_term"],
+      "partialCompatible": ["long_term"],
+      "incompatible": [],
+      "scoreMap": { "medium_term": 20, "short_term": 12, "long_term": 8 }
+    },
+    "long_term": {
+      "description": "两年以上",
+      "compatible": ["long_term", "medium_term"],
+      "partialCompatible": ["short_term"],
+      "incompatible": [],
+      "scoreMap": { "long_term": 20, "medium_term": 12, "short_term": 5 }
+    }
+  },
+
+  "liquidityMatching": {
+    "high": {
+      "description": "随时需要用到",
+      "compatible": ["high"],
+      "partialCompatible": ["medium"],
+      "incompatible": ["medium_low", "low"],
+      "scoreMap": { "high": 20, "medium": 10, "medium_low": 0, "low": 0 }
+    },
+    "medium": {
+      "description": "未来3-6个月可能用到",
+      "compatible": ["medium", "high"],
+      "partialCompatible": ["medium_low"],
+      "incompatible": ["low"],
+      "scoreMap": { "medium": 20, "high": 12, "medium_low": 8, "low": 0 }
+    },
+    "low": {
+      "description": "未来一年以上不用",
+      "compatible": ["low", "medium_low", "medium"],
+      "partialCompatible": ["high"],
+      "incompatible": [],
+      "scoreMap": { "low": 20, "medium_low": 15, "medium": 10, "high": 5 }
+    }
+  },
+
+  "returnExpectationMatching": {
+    "capital_stability": {
+      "description": "本金保障优先",
+      "preferredTypes": ["pure_bond", "money_market", "fixed_income_plus"],
+      "scoreMap": {
+        "pure_bond": 20,
+        "money_market": 18,
+        "fixed_income_plus": 15,
+        "multi_asset": 10,
+        "convertible_bond": 5,
+        "commodity": 0,
+        "equity_index": 0,
+        "equity_fof": 0,
+        "etf_sector": 0,
+        "etf_style": 0,
+        "equity_active": 0,
+        "equity_value": 0,
+        "equity_dividend": 5,
+        "derivatives": 0
+      }
+    },
+    "stable_enhancement": {
+      "description": "稳健增值，追求略高于存款收益",
+      "preferredTypes": ["fixed_income_plus", "multi_asset", "convertible_bond", "equity_dividend"],
+      "scoreMap": {
+        "fixed_income_plus": 20,
+        "multi_asset": 18,
+        "convertible_bond": 16,
+        "equity_dividend": 15,
+        "pure_bond": 12,
+        "etf_sector": 8,
+        "equity_fof": 8,
+        "etf_style": 8,
+        "commodity": 5,
+        "equity_value": 5,
+        "equity_index": 3,
+        "equity_active": 0,
+        "derivatives": 0
+      }
+    },
+    "balanced": {
+      "description": "收益与风险平衡",
+      "preferredTypes": ["multi_asset", "equity_dividend", "etf_style", "convertible_bond"],
+      "scoreMap": {
+        "multi_asset": 20,
+        "equity_dividend": 18,
+        "etf_style": 15,
+        "convertible_bond": 15,
+        "equity_fof": 12,
+        "etf_sector": 10,
+        "equity_value": 10,
+        "fixed_income_plus": 8,
+        "commodity": 5,
+        "equity_index": 3,
+        "equity_active": 0,
+        "derivatives": 0
+      }
+    },
+    "balanced_growth": {
+      "description": "追求一定成长性，可承受中等波动",
+      "preferredTypes": ["equity_fof", "etf_sector", "equity_dividend", "equity_value"],
+      "scoreMap": {
+        "equity_fof": 20,
+        "etf_sector": 18,
+        "equity_dividend": 16,
+        "equity_value": 15,
+        "etf_style": 14,
+        "multi_asset": 10,
+        "equity_index": 8,
+        "convertible_bond": 5,
+        "fixed_income_plus": 3,
+        "commodity": 5,
+        "equity_active": 3,
+        "derivatives": 0
+      }
+    },
+    "growth": {
+      "description": "追求高收益，可承受较大波动",
+      "preferredTypes": ["equity_active", "equity_index", "etf_sector", "commodity"],
+      "scoreMap": {
+        "equity_active": 20,
+        "equity_index": 18,
+        "etf_sector": 16,
+        "commodity": 14,
+        "equity_fof": 10,
+        "etf_style": 8,
+        "equity_value": 5,
+        "derivatives": 3,
+        "multi_asset": 0,
+        "convertible_bond": 0,
+        "fixed_income_plus": 0,
+        "pure_bond": 0,
+        "money_market": 0
+      }
+    },
+    "absolute_return": {
+      "description": "追求绝对收益，不关心相对排名",
+      "preferredTypes": ["derivatives", "commodity", "multi_asset", "equity_value"],
+      "scoreMap": {
+        "derivatives": 20,
+        "commodity": 18,
+        "multi_asset": 16,
+        "equity_value": 14,
+        "convertible_bond": 10,
+        "equity_dividend": 8,
+        "etf_style": 5,
+        "equity_index": 3,
+        "equity_fof": 3,
+        "equity_active": 0,
+        "etf_sector": 0,
+        "fixed_income_plus": 0,
+        "pure_bond": 0,
+        "money_market": 0
+      }
+    },
+    "alternative_return": {
+      "description": "追求与其他资产相关性低的收益",
+      "preferredTypes": ["commodity", "equity_dividend", "derivatives"],
+      "scoreMap": {
+        "commodity": 20,
+        "equity_dividend": 18,
+        "derivatives": 16,
+        "multi_asset": 12,
+        "convertible_bond": 8,
+        "etf_sector": 5,
+        "equity_index": 3,
+        "equity_fof": 3,
+        "equity_value": 3,
+        "equity_active": 0,
+        "etf_style": 0,
+        "fixed_income_plus": 0,
+        "pure_bond": 0,
+        "money_market": 0
+      }
+    }
+  },
+
+  "scoreWeights": {
+    "riskMatch": 30,
+    "horizonMatch": 20,
+    "liquidityMatch": 20,
+    "returnExpectationMatch": 20,
+    "assetBalanceBonus": 10
+  },
+
+  "priorityThresholds": {
+    "primary": 85,
+    "alternative": 65,
+    "cautionary": 45
+  },
+
+  "priorityLabels": {
+    "primary": {
+      "icon": "⭐",
+      "label": "首选推荐",
+      "color": "#4ade80",
+      "description": "高度匹配客户需求，建议优先关注"
+    },
+    "alternative": {
+      "icon": "💡",
+      "label": "备选关注",
+      "color": "#58c7ff",
+      "description": "基本匹配，可作为备选了解"
+    },
+    "cautionary": {
+      "icon": "📌",
+      "label": "了解即可",
+      "color": "#e5a347",
+      "description": "存在一定不匹配维度，建议谨慎评估"
+    }
+  },
+
+  "aiInterpretationPrompts": {
+    "system": "你是一位专业、资深的私募资产管理顾问。你对光大资管的每一条策略产品都有深入了解，擅长用通俗易懂的语言向客户解释策略特点、风险收益特征和适用场景。",
+    "matchReasonTemplate": "根据您刚才提供的信息（{profile_summary}），{strategy_name}在这个场景下值得优先关注，原因如下：{reasons}。需要留意的是：{cautions}。",
+    "comparisonTemplate": "以下{count}条策略在您的需求下进行了初步筛选，逐条说明差异：{comparisons}",
+    "nextQuestionTemplate": "为了给您更精准的建议，还需要了解：{questions}"
+  },
+
+  "escalationRules": [
+    {
+      "condition": "investment_amount > 1000",
+      "escalationType": "large_account",
+      "shouldEscalate": true,
+      "reason": "投资金额较大，建议转专业客户经理一对一服务"
+    },
+    {
+      "condition": "customer_age < 25 OR customer_age > 65",
+      "escalationType": "age_sensitive",
+      "shouldEscalate": true,
+      "reason": "该年龄段客户需要更详细的风险适配评估"
+    },
+    {
+      "condition": "risk_level == 'conservative' AND return_expectation IN ['growth', 'absolute_return']",
+      "escalationType": "mismatch",
+      "shouldEscalate": true,
+      "reason": "您的风险偏好与收益目标存在较大差异，建议进一步沟通"
+    }
+  ],
+
+  "complianceRules": [
+    {
+      "ruleId": "C-001",
+      "forbiddenPhrases": ["保本", "稳赚", "确定收益", "不会亏", "零风险", "本金无忧"],
+      "replaceHint": "请改为'追求稳健增值'、'力争获取较好回报'、'历史表现不代表未来'等合规表达"
+    },
+    {
+      "ruleId": "C-002",
+      "forbiddenPhrases": ["保证", "承诺", "一定"],
+      "replaceHint": "请删除绝对化表述"
+    }
+  ]
+}

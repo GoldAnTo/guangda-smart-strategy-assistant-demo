@@ -13,7 +13,7 @@ interface TimeSeriesPoint {
   benchmark: number | null
 }
 
-interface StrategyData {
+interface StrategyMeta {
   seed: number
   name: string
   navCategory: string
@@ -23,32 +23,30 @@ interface StrategyData {
   volatility: number
   sharpe: number
   benchmarkName: string
-  timeSeries?: Record<string, TimeSeriesPoint[]>
 }
 
-let strategiesCache: Record<string, StrategyData> | null = null
+let metaCache: StrategyMeta[] | null = null
+let tsCache: Record<string, TimeSeriesPoint[]> | null = null
 
-function getStrategiesData(): Record<string, StrategyData> {
-  if (!strategiesCache) {
-    const filePath = path.join(__dirname, '..', 'data', 'strategies.json')
-    const raw = fs.readFileSync(filePath, 'utf-8')
-    const clean = raw.replace(/\bNaN\b/g, 'null')
-    strategiesCache = JSON.parse(clean) as Record<string, StrategyData>
+function getMeta(): StrategyMeta[] {
+  if (!metaCache) {
+    const raw = fs.readFileSync(path.join(__dirname, '..', 'data', 'strategies-enhanced.json'), 'utf-8')
+    const data = JSON.parse(raw)
+    metaCache = data.strategies
   }
-  return strategiesCache
+  return metaCache
 }
 
-function getAllStrategies(): StrategyData[] {
-  const all = getStrategiesData()
-  return Object.values(all).map(({ timeSeries: _ts, ...meta }) => {
-    // Fill in missing metrics from time series
-    const s = { ...meta } as StrategyData
-    const ts = (_ts || {})['inception'] || []
-    if (s.annualReturn === 0 && ts.length >= 2) {
-      s.annualReturn = Math.round(deriveAnnualReturn(ts) * 100) / 100
-    }
-    return s
-  })
+function getTS(): Record<string, TimeSeriesPoint[]> {
+  if (!tsCache) {
+    const raw = fs.readFileSync(path.join(__dirname, '..', 'data', 'strategies-timeseries.json'), 'utf-8')
+    tsCache = JSON.parse(raw)
+  }
+  return tsCache
+}
+
+function getAllStrategies(): StrategyMeta[] {
+  return getMeta()
 }
 
 const router = Router()
@@ -153,9 +151,12 @@ router.post('/portfolio/simulate', (req, res) => {
     })
   }
 
-  const all = getStrategiesData()
+  const allMeta = getMeta()
+  const allTS = getTS()
+  const metaById = new Map(allMeta.map(s => [String(s.seed), s]))
+
   for (const a of allocations) {
-    if (!all[a.strategyId]) {
+    if (!metaById.has(a.strategyId)) {
       return res.status(400).json({ code: 400, message: `strategy ${a.strategyId} not found`, requestId })
     }
   }
@@ -163,8 +164,8 @@ router.post('/portfolio/simulate', (req, res) => {
   try {
     // Per-strategy metrics: use strategy's own pre-computed values where available
     const components = allocations.map(a => {
-      const s = all[a.strategyId]
-      const ts = (s.timeSeries || {})[period] || []
+      const s = metaById.get(a.strategyId)!
+      const ts = (allTS[String(s.seed)] || []).sort((a, b) => a.date.localeCompare(b.date))
       const annFactor = annualizationFactor(ts)
 
       // Use strategy's own annual return; if 0 but time series exists, compute from series

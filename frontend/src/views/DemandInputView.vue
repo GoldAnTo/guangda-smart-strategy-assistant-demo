@@ -88,7 +88,7 @@ function handleApplyScenario(scene: any) {
   grid-template-columns: minmax(0, 1fr) 320px;
   gap: 20px;
   align-items: center;
-  padding: 24px 28px;
+  padding: 20px 20px;
 }
 
 .demand-hero h1 {

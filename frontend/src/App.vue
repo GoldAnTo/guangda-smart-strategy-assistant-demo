@@ -41,10 +41,10 @@ const route = useRoute()
 
 const navItems = computed(() => [
   { path: '/', label: '策略首页' },
+  { path: '/advisor', label: '顾问工作台' },
   { path: '/compare', label: '方向对比' },
-  { path: '/chat', label: 'AI顾问' },
-  { path: '/recommendation', label: '参考结论' },
-  { path: '/demand', label: '偏好补充' }
+  { path: '/exhibition', label: '展览模式' },
+  { path: '/recommendation', label: '组合配置' }
 ])
 </script>
 
@@ -145,17 +145,21 @@ button {
 }
 
 .topbar {
-  position: sticky;
+  position: fixed;
   top: 0;
-  z-index: 10;
+  left: 0;
+  right: 0;
+  z-index: 100;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 20px;
-  padding: 18px 28px;
-  background: rgba(248, 242, 233, 0.78);
-  backdrop-filter: blur(18px);
-  border-bottom: 1px solid rgba(25, 50, 74, 0.08);
+  padding: 14px 28px;
+  height: 72px;
+  background: rgba(248, 242, 233, 0.88);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(25, 50, 74, 0.1);
+  box-shadow: 0 2px 24px rgba(41, 61, 84, 0.08);
 }
 
 .brand {
@@ -166,17 +170,18 @@ button {
 }
 
 .brand-mark {
-  width: 50px;
-  height: 50px;
+  width: 42px;
+  height: 42px;
   display: grid;
   place-items: center;
-  border-radius: 16px;
+  border-radius: 12px;
   background: linear-gradient(135deg, #18385c, #2d567f);
   color: #fff7ea;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.08em;
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
 }
 
 .brand-title {
@@ -220,7 +225,9 @@ button {
 
 .view-wrap {
   position: relative;
-  padding: 30px 28px 40px;
+  padding: 88px 12px 40px;
+  min-height: 100vh;
+  box-sizing: border-box;
 }
 
 .page-shell {

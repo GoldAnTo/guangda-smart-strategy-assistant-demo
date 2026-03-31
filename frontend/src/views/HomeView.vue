@@ -10,7 +10,7 @@
         <h1>策略目录</h1>
         <p class="page-lead">{{ allStrategies.length }} 条策略 · 覆盖 {{ categoryCount }} 大资产类别</p>
       </div>
-      <div class="header-stats">
+      <div class="header-right">
         <div class="h-stat">
           <span class="h-val gain">{{ avgReturn }}</span>
           <span class="h-label">平均年化</span>
@@ -19,29 +19,51 @@
           <span class="h-val">{{ avgWinRate }}</span>
           <span class="h-label">平均胜率</span>
         </div>
+        <div class="h-actions">
+          <button class="advisor-cta" @click="goAdvisor">
+            <span>🧠</span> AI顾问工作台
+          </button>
+          <button class="exhibition-btn" @click="goExhibition">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+            展览模式
+          </button>
+        </div>
       </div>
     </header>
 
     <!-- ═══════════════════════════════════════════════ -->
-    <!-- 分类标签导航 -->
+    <!-- 分类概览卡片 -->
     <!-- ═══════════════════════════════════════════════ -->
-    <nav class="category-nav">
-      <div class="cat-nav-inner">
-        <button
-          v-for="cat in categorySummary"
-          :key="cat.name"
-          class="cat-tab"
-          :class="{ active: activeCat === cat.name }"
-          @click="selectCategory(cat.name)"
-        >
-          <span class="cat-tab-name">{{ cat.name }}</span>
-          <span class="cat-tab-count">{{ cat.count }}</span>
-        </button>
+    <section class="cat-overview" v-if="!loading && !error">
+      <div
+        v-for="cat in categoriesWithStrategies"
+        :key="cat.name"
+        class="cat-ov-card"
+        :class="{ active: activeCat === cat.name }"
+        @click="toggleCategory(cat.name)"
+      >
+        <div class="cov-head">
+          <span class="cov-name">{{ cat.name }}</span>
+          <span class="cov-count">{{ cat.count }}条</span>
+        </div>
+        <div class="cov-metrics">
+          <div class="cov-metric">
+            <span class="cov-mval gain">{{ cat.avgReturn }}</span>
+            <span class="cov-mlab">平均年化</span>
+          </div>
+          <div class="cov-metric">
+            <span class="cov-mval">{{ cat.avgWinRate }}%</span>
+            <span class="cov-mlab">平均胜率</span>
+          </div>
+        </div>
+        <div class="cov-risk">
+          <span class="cov-risk-label">{{ cat.topRisk }}</span>
+        </div>
       </div>
-    </nav>
+    </section>
 
     <!-- ═══════════════════════════════════════════════ -->
-    <!-- 搜索 + 排序 -->
+    <!-- 搜索 + 排序 + 筛选 -->
     <!-- ═══════════════════════════════════════════════ -->
     <div class="controls-bar">
       <div class="search-wrap">
@@ -54,6 +76,16 @@
         <button v-for="s in sortOptions" :key="s.key"
           class="sort-btn" :class="{ active: sortKey === s.key }"
           @click="sortKey = s.key">{{ s.label }}</button>
+      </div>
+      <div class="risk-filter">
+        <span class="sort-label">风险：</span>
+        <button
+          v-for="r in riskFilters"
+          :key="r.value"
+          class="risk-btn"
+          :class="{ active: activeRisk === r.value }"
+          @click="activeRisk = activeRisk === r.value ? '' : r.value"
+        >{{ r.label }}</button>
       </div>
     </div>
 
@@ -78,113 +110,73 @@
     <!-- ═══════════════════════════════════════════════ -->
     <div v-else>
 
-      <!-- "全部" 分类时：按大类分组展示 -->
-      <template v-if="activeCat === '' && !searchText">
-        <div v-for="cat in categoriesWithStrategies" :key="cat.name" class="cat-group">
-          <div class="cat-group-header">
-            <div class="cat-group-title">
-              <h2>{{ cat.name }}</h2>
-              <span class="cat-group-count">{{ cat.strategies.length }} 条策略</span>
-            </div>
-            <div class="cat-group-avg">
-              区间均值
-              <strong class="gain">{{ cat.avgReturn }}</strong>
-            </div>
-          </div>
-          <div class="cat-strategy-grid">
-            <article
-              v-for="s in cat.strategies"
-              :key="s.seed"
-              class="strategy-card card"
-              @click="goDetail(s.seed)"
-            >
-              <div class="card-top">
-                <span class="card-cat">{{ s.navCategory }}</span>
-                <div class="card-stars">
-                  <span v-for="n in 5" :key="n" :class="n <= (s.outlookStars || 3) ? 'filled' : ''">★</span>
-                </div>
-              </div>
-              <h3 class="card-name">{{ s.name }}</h3>
-              <div class="card-owner">{{ s.owner }}</div>
-              <div class="card-metrics">
-                <div class="cm-item">
-                  <div class="cm-val" :class="s.annualReturn >= 0 ? 'gain' : 'loss'">
-                    {{ s.annualReturn >= 0 ? '+' : '' }}{{ s.annualReturn.toFixed(2) }}%
-                  </div>
-                  <div class="cm-label">年化收益</div>
-                </div>
-                <div class="cm-divider"></div>
-                <div class="cm-item">
-                  <div class="cm-val" :class="winRateClass(s.winRate)">{{ s.winRate.toFixed(0) }}%</div>
-                  <div class="cm-label">胜率</div>
-                </div>
-                <div class="cm-divider"></div>
-                <div class="cm-item">
-                  <div class="cm-val neutral">{{ s.benchmarkName || '—' }}</div>
-                  <div class="cm-label">基准</div>
-                </div>
-              </div>
-              <div class="card-tags">
-                <span v-for="tag in (s.tags || []).slice(0, 3)" :key="tag" class="card-tag">{{ tag }}</span>
-              </div>
-              <div class="card-footer">
-                <span class="card-action">查看详情 →</span>
-              </div>
-            </article>
-          </div>
-        </div>
-      </template>
+      <!-- 结果数量提示 -->
+      <div class="result-bar" v-if="filteredStrategies.length">
+        <span class="result-count">{{ filteredStrategies.length }} 条策略</span>
+        <button v-if="activeCat || searchText || activeRisk" class="reset-btn" @click="resetFilters">
+          重置筛选 ×
+        </button>
+      </div>
 
-      <!-- 选中具体分类时：直接展示该分类策略 -->
-      <template v-else>
-        <div class="cat-group-header" style="margin-bottom: 16px;">
-          <div class="cat-group-title">
-            <h2>{{ activeCat }}</h2>
-            <span class="cat-group-count">{{ filteredStrategies.length }} 条策略</span>
+      <!-- 策略网格 -->
+      <div class="cat-strategy-grid">
+        <article
+          v-for="s in filteredStrategies"
+          :key="s.seed"
+          class="strategy-card card"
+          @click="goDetail(s.seed)"
+        >
+          <!-- AI推荐标识 -->
+          <div class="card-ai-badge" v-if="s.annualReturn >= 15 && s.winRate >= 80">
+            <span>⭐</span> AI优选
           </div>
-        </div>
-        <div class="cat-strategy-grid">
-          <article
-            v-for="s in filteredStrategies"
-            :key="s.seed"
-            class="strategy-card card"
-            @click="goDetail(s.seed)"
-          >
-            <div class="card-top">
+
+          <div class="card-top">
+            <div class="card-top-left">
               <span class="card-cat">{{ s.navCategory }}</span>
               <div class="card-stars">
                 <span v-for="n in 5" :key="n" :class="n <= (s.outlookStars || 3) ? 'filled' : ''">★</span>
               </div>
             </div>
-            <h3 class="card-name">{{ s.name }}</h3>
-            <div class="card-owner">{{ s.owner }}</div>
-            <div class="card-metrics">
-              <div class="cm-item">
-                <div class="cm-val" :class="s.annualReturn >= 0 ? 'gain' : 'loss'">
-                  {{ s.annualReturn >= 0 ? '+' : '' }}{{ s.annualReturn.toFixed(2) }}%
-                </div>
-                <div class="cm-label">年化收益</div>
-              </div>
-              <div class="cm-divider"></div>
-              <div class="cm-item">
-                <div class="cm-val" :class="winRateClass(s.winRate)">{{ s.winRate.toFixed(0) }}%</div>
-                <div class="cm-label">胜率</div>
-              </div>
-              <div class="cm-divider"></div>
-              <div class="cm-item">
-                <div class="cm-val neutral">{{ s.benchmarkName || '—' }}</div>
-                <div class="cm-label">基准</div>
-              </div>
+            <!-- 风险等级标签 -->
+            <div class="risk-badge" :class="'risk-' + ((s as any).riskLevel || 'R3')">
+              {{ ((s as any).riskLevel || 'R3') }}
             </div>
-            <div class="card-tags">
-              <span v-for="tag in (s.tags || []).slice(0, 3)" :key="tag" class="card-tag">{{ tag }}</span>
+          </div>
+
+          <h3 class="card-name">{{ s.name }}</h3>
+          <div class="card-owner">{{ s.owner }}</div>
+
+          <!-- 指标墙 -->
+          <div class="card-metrics">
+            <div class="cm-item">
+              <div class="cm-val" :class="s.annualReturn >= 0 ? 'gain' : 'loss'">
+                {{ s.annualReturn >= 0 ? '+' : '' }}{{ s.annualReturn.toFixed(2) }}%
+              </div>
+              <div class="cm-label">年化收益</div>
             </div>
-            <div class="card-footer">
-              <span class="card-action">查看详情 →</span>
+            <div class="cm-divider"></div>
+            <div class="cm-item">
+              <div class="cm-val" :class="winRateClass(s.winRate)">{{ s.winRate.toFixed(0) }}%</div>
+              <div class="cm-label">胜率</div>
             </div>
-          </article>
-        </div>
-      </template>
+            <div class="cm-divider"></div>
+            <div class="cm-item">
+              <div class="cm-val neutral">{{ s.benchmarkName || '—' }}</div>
+              <div class="cm-label">基准</div>
+            </div>
+          </div>
+
+          <!-- 标签 -->
+          <div class="card-tags">
+            <span v-for="tag in (s.tags || []).slice(0, 3)" :key="tag" class="card-tag">{{ tag }}</span>
+          </div>
+
+          <div class="card-footer">
+            <span class="card-action">查看详情 →</span>
+          </div>
+        </article>
+      </div>
 
       <!-- 搜索空状态 -->
       <div v-if="!loading && !error && filteredStrategies.length === 0" class="empty-search card">
@@ -208,12 +200,19 @@ const loading = ref(false)
 const error = ref('')
 const searchText = ref('')
 const activeCat = ref('')
+const activeRisk = ref('')
 const sortKey = ref('annualReturn')
 
 const sortOptions = [
   { key: 'annualReturn', label: '年化收益' },
   { key: 'winRate', label: '胜率' },
   { key: 'name', label: '名称' },
+]
+
+const riskFilters = [
+  { value: 'R3', label: 'R3' },
+  { value: 'R4', label: 'R4' },
+  { value: 'R5', label: 'R5' },
 ]
 
 const avgReturn = computed(() => {
@@ -236,23 +235,30 @@ const categoriesWithStrategies = computed(() => {
     map[cat].push(s)
   }
   return Object.entries(map)
-    .map(([name, strategies]) => ({
-      name,
-      count: strategies.length,
-      avgReturn: (strategies.reduce((a, b) => a + b.annualReturn, 0) / strategies.length).toFixed(1) + '%',
-      strategies: [...strategies].sort((a, b) => b.annualReturn - a.annualReturn),
-    }))
+    .map(([name, strategies]) => {
+      const valid = strategies.filter(s => s.annualReturn > 0)
+      const riskCounts: Record<string, number> = {}
+      for (const s of strategies) {
+        const r = ((s as any).riskLevel as string) || 'R3'
+        riskCounts[r] = (riskCounts[r] || 0) + 1
+      }
+      const topRisk = Object.entries(riskCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'R3'
+      return {
+        name,
+        count: strategies.length,
+        avgReturn: valid.length ? (valid.reduce((a, b) => a + b.annualReturn, 0) / valid.length).toFixed(1) + '%' : '—',
+        avgWinRate: valid.length ? (valid.reduce((a, b) => a + b.winRate, 0) / valid.length).toFixed(0) + '%' : '—',
+        topRisk,
+        strategies: [...strategies].sort((a, b) => b.annualReturn - a.annualReturn),
+      }
+    })
     .sort((a, b) => b.count - a.count)
 })
-
-const categorySummary = computed(() => [
-  { name: '', label: '全部', count: allStrategies.value.length },
-  ...categoriesWithStrategies.value.map(c => ({ name: c.name, label: c.name, count: c.count })),
-])
 
 const filteredStrategies = computed(() => {
   let list = [...allStrategies.value]
   if (activeCat.value) list = list.filter(s => s.navCategory === activeCat.value)
+  if (activeRisk.value) list = list.filter(s => (s as any).riskLevel === activeRisk.value)
   const q = searchText.value.trim().toLowerCase()
   if (q) list = list.filter(s =>
     s.name.toLowerCase().includes(q) ||
@@ -268,14 +274,19 @@ const filteredStrategies = computed(() => {
   return list
 })
 
-function selectCategory(cat: string) {
-  activeCat.value = cat
-  searchText.value = ''
+function toggleCategory(cat: string) {
+  if (activeCat.value === cat) {
+    activeCat.value = ''
+  } else {
+    activeCat.value = cat
+    searchText.value = ''
+  }
 }
 
 function resetFilters() {
   searchText.value = ''
   activeCat.value = ''
+  activeRisk.value = ''
 }
 
 function winRateClass(w: number) {
@@ -298,35 +309,66 @@ function goDetail(seed: number) {
   router.push(`/product/${seed}`)
 }
 
+function goExhibition() {
+  router.push('/exhibition')
+}
+
+function goAdvisor() {
+  router.push('/advisor')
+}
+
 onMounted(loadStrategies)
 </script>
 
 <style scoped>
-.home-page { display: flex; flex-direction: column; gap: 0; padding-bottom: 60px; }
+.home-page { display: flex; flex-direction: column; gap: 0; min-height: calc(100vh - 88px); box-sizing: border-box; }
 
 /* 顶部 */
-.home-header { display: flex; justify-content: space-between; align-items: flex-end; padding: 36px 32px 24px; gap: 24px; flex-wrap: wrap; border-bottom: 1px solid rgba(23,55,91,0.08); }
+.home-header { display: flex; justify-content: space-between; align-items: flex-end; padding: 20px 16px 16px; gap: 24px; flex-wrap: wrap; border-bottom: 1px solid rgba(23,55,91,0.08); }
 .header-left .eyebrow { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); margin-bottom: 8px; }
 .header-left h1 { margin: 0; font-size: 34px; font-weight: 700; color: var(--text); }
 .header-left .page-lead { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
-.header-stats { display: flex; gap: 28px; }
+.header-right { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
 .h-stat { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
 .h-val { font-size: 28px; font-weight: 700; font-family: 'DIN Alternate','Bahnschrift',sans-serif; color: var(--blue); }
 .h-val.gain { color: #c24a00; }
 .h-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+.h-actions { display: flex; gap: 10px; align-items: center; }
 
-/* 分类导航 */
-.category-nav { position: sticky; top: 0; z-index: 10; background: rgba(248,242,233,0.92); backdrop-filter: blur(16px); padding: 0 32px; border-bottom: 1px solid rgba(23,55,91,0.08); }
-.cat-nav-inner { display: flex; gap: 4px; overflow-x: auto; padding: 12px 0; scrollbar-width: none; }
-.cat-nav-inner::-webkit-scrollbar { display: none; }
-.cat-tab { display: flex; align-items: center; gap: 8px; padding: 8px 18px; border-radius: 999px; border: 1px solid rgba(23,55,91,0.12); background: transparent; color: var(--muted); cursor: pointer; font-size: 13px; white-space: nowrap; transition: all 0.2s; }
-.cat-tab:hover { border-color: rgba(23,55,91,0.35); color: var(--text); }
-.cat-tab.active { background: var(--blue); border-color: var(--blue); color: #fff; }
-.cat-tab-count { font-size: 11px; padding: 2px 7px; border-radius: 999px; background: rgba(23,55,91,0.08); }
-.cat-tab.active .cat-tab-count { background: rgba(255,255,255,0.25); }
+/* AI顾问CTA */
+.advisor-cta {
+  display: flex; align-items: center; gap: 7px;
+  padding: 10px 20px; border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #9e722e, #c24a00);
+  color: #fff; cursor: pointer; font-size: 14px; font-weight: 700;
+  box-shadow: 0 6px 20px rgba(158,114,46,0.3);
+  transition: all 0.2s;
+}
+.advisor-cta:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(158,114,46,0.4); }
 
-/* 搜索+排序 */
-.controls-bar { display: flex; justify-content: space-between; align-items: center; padding: 20px 32px 0; gap: 16px; flex-wrap: wrap; }
+/* 分类概览 */
+.cat-overview { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; padding: 16px 0 0; }
+.cat-ov-card {
+  background: rgba(255,255,255,0.84); border: 1.5px solid rgba(255,255,255,0.9);
+  border-radius: 14px; padding: 12px 14px; cursor: pointer;
+  transition: all 0.2s ease; box-shadow: 0 2px 12px rgba(41,61,84,0.05);
+}
+.cat-ov-card:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(41,61,84,0.1); border-color: rgba(158,114,46,0.3); }
+.cat-ov-card.active { border-color: var(--gold); background: rgba(158,114,46,0.06); box-shadow: 0 2px 14px rgba(158,114,46,0.12); }
+.cov-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.cov-name { font-size: 13px; font-weight: 700; color: var(--text); }
+.cov-count { font-size: 11px; color: var(--muted); }
+.cov-metrics { display: flex; gap: 10px; margin-bottom: 6px; }
+.cov-metric { display: flex; flex-direction: column; gap: 1px; }
+.cov-mval { font-size: 15px; font-weight: 800; font-family: 'DIN Alternate','Bahnschrift',sans-serif; color: var(--blue); }
+.cov-mval.gain { color: #c24a00; }
+.cov-mlab { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.cov-risk { }
+.cov-risk-label { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(23,55,91,0.06); color: var(--muted); border: 1px solid rgba(23,55,91,0.1); }
+
+/* 搜索+排序+筛选 */
+.controls-bar { display: flex; justify-content: space-between; align-items: center; padding: 16px 0 0; gap: 12px; flex-wrap: wrap; }
 .search-wrap { position: relative; flex: 1; max-width: 400px; }
 .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: var(--muted); }
 .search-input { width: 100%; padding: 9px 40px 9px 40px; border-radius: 10px; border: 1px solid rgba(23,55,91,0.15); background: rgba(255,255,255,0.8); color: var(--text); font-size: 13px; outline: none; box-sizing: border-box; }
@@ -338,13 +380,23 @@ onMounted(loadStrategies)
 .sort-btn { padding: 7px 14px; border-radius: 8px; border: 1px solid transparent; background: transparent; color: var(--muted); cursor: pointer; font-size: 12px; transition: all 0.2s; }
 .sort-btn:hover { color: var(--text); }
 .sort-btn.active { background: rgba(23,55,91,0.08); border-color: rgba(23,55,91,0.18); color: var(--blue); }
+.risk-filter { display: flex; align-items: center; gap: 4px; }
+.risk-btn { padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(23,55,91,0.12); background: transparent; color: var(--muted); cursor: pointer; font-size: 12px; transition: all 0.2s; }
+.risk-btn:hover { border-color: rgba(23,55,91,0.3); color: var(--text); }
+.risk-btn.active { background: rgba(23,55,91,0.08); border-color: rgba(23,55,91,0.2); color: var(--blue); font-weight: 600; }
+
+/* 结果栏 */
+.result-bar { display: flex; justify-content: space-between; align-items: center; padding: 12px 4px 4px; }
+.result-count { font-size: 13px; color: var(--muted); }
+.reset-btn { background: none; border: none; color: var(--gold); cursor: pointer; font-size: 13px; padding: 4px 8px; border-radius: 6px; }
+.reset-btn:hover { background: rgba(158,114,46,0.1); }
 
 /* 卡片 */
 .card { background: rgba(255,255,255,0.84); border: 1px solid rgba(255,255,255,0.9); box-shadow: 0 4px 20px rgba(41,61,84,0.08); border-radius: 20px; }
 
 /* 大类分组 */
-.cat-group { margin-top: 28px; }
-.cat-group:first-child { margin-top: 24px; }
+.cat-group { margin-top: 24px; }
+.cat-group:first-child { margin-top: 0; }
 .cat-group-header { display: flex; justify-content: space-between; align-items: center; padding: 0 4px 14px; }
 .cat-group-title { display: flex; align-items: baseline; gap: 12px; }
 .cat-group-title h2 { margin: 0; font-size: 20px; font-weight: 700; color: var(--text); }
@@ -356,13 +408,32 @@ onMounted(loadStrategies)
 .cat-strategy-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
 
 /* 策略卡片 */
-.strategy-card { padding: 20px; display: flex; flex-direction: column; gap: 10px; cursor: pointer; transition: all 0.25s ease; }
+.strategy-card { padding: 18px; display: flex; flex-direction: column; gap: 8px; cursor: pointer; transition: all 0.25s ease; position: relative; }
 .strategy-card:hover { transform: translateY(-2px); box-shadow: 0 12px 36px rgba(41,61,84,0.14); }
-.card-top { display: flex; justify-content: space-between; align-items: center; }
-.card-cat { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); }
-.card-stars { display: flex; gap: 1px; }
-.card-stars span { font-size: 12px; color: rgba(23,55,91,0.15); }
+.card-top { display: flex; justify-content: space-between; align-items: flex-start; }
+.card-top-left { display: flex; align-items: center; gap: 8px; }
+.card-cat { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); white-space: nowrap; }
+.card-stars { display: flex; gap: 0px; }
+.card-stars span { font-size: 11px; color: rgba(23,55,91,0.18); }
 .card-stars span.filled { color: var(--gold); }
+
+/* 风险等级徽章 */
+.risk-badge { font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 5px; flex-shrink: 0; letter-spacing: 0.04em; }
+.risk-badge.risk-R1 { background: rgba(88,199,255,0.15); color: #58c7ff; border: 1px solid rgba(88,199,255,0.3); }
+.risk-badge.risk-R2 { background: rgba(74,222,128,0.15); color: #4ade80; border: 1px solid rgba(74,222,128,0.3); }
+.risk-badge.risk-R3 { background: rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); }
+.risk-badge.risk-R4 { background: rgba(249,115,22,0.15); color: #f97316; border: 1px solid rgba(249,115,22,0.3); }
+.risk-badge.risk-R5 { background: rgba(248,113,113,0.15); color: #f87171; border: 1px solid rgba(248,113,113,0.3); }
+
+/* AI推荐徽章 */
+.card-ai-badge {
+  position: absolute; top: 10px; right: 10px;
+  display: flex; align-items: center; gap: 3px;
+  font-size: 10px; font-weight: 700;
+  padding: 2px 7px; border-radius: 6px;
+  background: rgba(158,114,46,0.12); border: 1px solid rgba(158,114,46,0.3);
+  color: var(--gold);
+}
 .card-name { margin: 0; font-size: 17px; font-weight: 700; color: var(--text); line-height: 1.3; }
 .card-owner { font-size: 12px; color: var(--muted); }
 
@@ -386,7 +457,7 @@ onMounted(loadStrategies)
 .card-action { font-size: 13px; color: var(--gold); font-weight: 600; }
 
 /* 加载骨架 */
-.loading-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; padding: 24px 32px; }
+.loading-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; padding: 16px 16px; }
 .skeleton-card { height: 220px; border-radius: 20px; background: rgba(23,55,91,0.06); animation: shimmer 1.5s infinite; }
 @keyframes shimmer { 0%,100% { opacity: 0.5 } 50% { opacity: 1 } }
 
@@ -400,6 +471,17 @@ onMounted(loadStrategies)
 .retry-btn { margin-top: 8px; padding: 10px 24px; border-radius: 10px; border: 1px solid rgba(23,55,91,0.2); background: transparent; color: var(--blue); cursor: pointer; font-size: 14px; }
 .retry-btn:hover { background: rgba(23,55,91,0.06); }
 
+/* 展览按钮 */
+.exhibition-btn {
+  display: flex; align-items: center; gap: 7px;
+  padding: 9px 18px; border-radius: 12px;
+  border: 1.5px solid var(--blue);
+  background: transparent; color: var(--blue);
+  cursor: pointer; font-size: 13px; font-weight: 600;
+  transition: all 0.2s;
+}
+.exhibition-btn:hover { background: var(--blue); color: #fff; }
+
 /* 颜色 */
 .gain { color: #c24a00 !important; }
 .loss { color: #b82020 !important; }
@@ -412,8 +494,12 @@ onMounted(loadStrategies)
   .search-wrap { max-width: 100%; width: 100%; }
   .cat-strategy-grid { grid-template-columns: 1fr 1fr; }
   .loading-grid { padding: 16px; }
+  .cat-overview { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 480px) {
   .cat-strategy-grid { grid-template-columns: 1fr; }
+  .cat-overview { grid-template-columns: 1fr 1fr; }
+  .controls-bar { flex-direction: column; align-items: stretch; }
+  .sort-tabs { overflow-x: auto; }
 }
 </style>

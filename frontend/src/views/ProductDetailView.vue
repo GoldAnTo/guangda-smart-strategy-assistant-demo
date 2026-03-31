@@ -19,9 +19,9 @@
     <nav class="breadcrumb">
       <button class="bc-item" @click="router.push('/products')">策略目录</button>
       <span class="bc-sep">›</span>
-      <span class="bc-current">{{ strategy.navCategory }}</span>
+      <span class="bc-current">{{ strategy?.navCategory || '—' }}</span>
       <span class="bc-sep">›</span>
-      <span class="bc-current bold">{{ strategy.name }}</span>
+      <span class="bc-current bold">{{ strategy?.name || '加载中' }}</span>
     </nav>
 
     <!-- ═══════════════════════════════════════════════ -->
@@ -30,46 +30,46 @@
     <header class="detail-head card">
       <div class="head-left">
         <div class="head-meta">
-          <span class="cat-badge">{{ strategy.navCategory }}</span>
-          <span class="strategy-id">No.{{ strategy.seed }}</span>
+          <span class="cat-badge">{{ strategy?.navCategory || '—' }}</span>
+          <span class="strategy-id">No.{{ strategy?.seed || '—' }}</span>
           <div class="stars-row">
-            <span v-for="n in 5" :key="n" class="star" :class="{ filled: n <= (strategy.outlookStars || 3) }">★</span>
+            <span v-for="n in 5" :key="n" class="star" :class="{ filled: n <= (strategy?.outlookStars || 3) }">★</span>
           </div>
         </div>
-        <h1 class="strategy-name">{{ strategy.name }}</h1>
+        <h1 class="strategy-name">{{ strategy?.name || '加载中' }}</h1>
         <div class="owner-row">
           <span class="owner-icon">👤</span>
-          <span class="owner-name">{{ strategy.owner }}</span>
+          <span class="owner-name">{{ strategy?.owner || '—' }}</span>
           <span class="dot">·</span>
-          <span class="start-date">成立 {{ strategy.startDate || '—' }}</span>
+          <span class="start-date">成立 {{ strategy?.startDate || '—' }}</span>
         </div>
         <div class="tag-row">
-          <span v-for="tag in (strategy.tags || []).slice(0, 5)" :key="tag" class="tag">{{ tag }}</span>
+          <span v-for="tag in ((strategy?.tags) || []).slice(0, 5)" :key="tag" class="tag">{{ tag }}</span>
         </div>
       </div>
 
       <!-- 核心指标 -->
       <div class="head-kpis">
         <div class="kpi-card">
-          <div class="kpi-num" :class="strategy.annualReturn >= 0 ? 'gain' : 'loss'">
-            {{ strategy.annualReturn >= 0 ? '+' : '' }}{{ strategy.annualReturn.toFixed(2) }}%
+          <div class="kpi-num" :class="(strategy.annualReturn ?? 0) >= 0 ? 'gain' : 'loss'">
+            {{ fmt(strategy.annualReturn) }}%
           </div>
           <div class="kpi-lbl">年化收益</div>
-          <div class="kpi-sub" :class="strategy.annualReturn >= 0 ? 'gain' : 'loss'">
+          <div class="kpi-sub" :class="(strategy.annualReturn ?? 0) >= 0 ? 'gain' : 'loss'">
             vs 基准 {{ excessReturn }}%
           </div>
         </div>
         <div class="kpi-sep"></div>
         <div class="kpi-card">
-          <div class="kpi-num" :class="winRateClass(strategy.winRate)">{{ strategy.winRate.toFixed(0) }}%</div>
+          <div class="kpi-num" :class="winRateClass(strategy.winRate ?? 0)">{{ strategy.winRate != null ? strategy.winRate.toFixed(0) + '%' : '—' }}</div>
           <div class="kpi-lbl">年度胜率</div>
           <div class="kpi-sub muted">{{ winRateYear }} 年均胜</div>
         </div>
         <div class="kpi-sep"></div>
         <div class="kpi-card">
-          <div class="kpi-num neutral">{{ strategy.benchmarkName || '—' }}</div>
+          <div class="kpi-num neutral">{{ strategy?.benchmarkName || '—' }}</div>
           <div class="kpi-lbl">比较基准</div>
-          <div class="kpi-sub muted">{{ strategy.structure || '标准结构' }}</div>
+          <div class="kpi-sub muted">{{ strategy?.structure || '标准结构' }}</div>
         </div>
       </div>
     </header>
@@ -106,11 +106,11 @@
       <div class="chart-legend">
         <div class="legend-item">
           <div class="legend-dot strategy-dot"></div>
-          <span>{{ strategy.name }}</span>
+          <span>{{ strategy?.name || '—' }}</span>
         </div>
         <div class="legend-item">
           <div class="legend-dot benchmark-dot"></div>
-          <span>{{ strategy.benchmarkName }}</span>
+          <span>{{ strategy?.benchmarkName || '—' }}</span>
         </div>
       </div>
     </section>
@@ -124,8 +124,8 @@
       <div class="compare-table">
         <div class="ct-row header">
           <div class="ct-cell col-metric">指标</div>
-          <div class="ct-cell col-strategy">{{ strategy.name }}</div>
-          <div class="ct-cell col-benchmark">{{ strategy.benchmarkName }}</div>
+          <div class="ct-cell col-strategy">{{ strategy?.name || '—' }}</div>
+          <div class="ct-cell col-benchmark">{{ strategy?.benchmarkName || '—' }}</div>
           <div class="ct-cell col-diff">差异</div>
         </div>
         <div class="ct-row" v-for="row in compareRows" :key="row.metric">
@@ -147,7 +147,7 @@
     <section class="crowd-section card">
       <div class="section-eyebrow">Target audience</div>
       <h2 class="section-heading">策略人群匹配</h2>
-      <p class="crowd-intro">{{ strategy.positioning || '该策略适用于多种市场环境，投资者可根据自身风险偏好选择。' }}</p>
+      <p class="crowd-intro">{{ strategy?.positioning || '该策略适用于多种市场环境，投资者可根据自身风险偏好选择。' }}</p>
       <div class="suitable-row">
         <div class="suitable-block ok-block">
           <div class="sb-title">✅ 适合人群</div>
@@ -170,7 +170,7 @@
     <section class="logic-section card">
       <div class="section-eyebrow">Core logic</div>
       <h2 class="section-heading">策略逻辑摘要</h2>
-      <div class="logic-text">{{ strategy.logicSummary }}</div>
+      <div class="logic-text">{{ strategy?.logicSummary || '—' }}</div>
       <div class="logic-disclaimer">📌 仅供内部研究展示，不构成投资建议</div>
     </section>
 
@@ -217,7 +217,12 @@ const periods = [
 ]
 const activePeriod = ref('inception')
 
-function rnd(n: number, d = 2) { return Number(n.toFixed(d)) }
+function rnd(n: number | null | undefined, d = 2) { return n == null ? '—' : Number(n.toFixed(d)) }
+function fmt(n: number | null | undefined, decimals = 2, prefix = '') {
+  if (n == null) return '—'
+  const sign = n >= 0 && prefix !== '-' ? '+' : ''
+  return `${sign}${prefix}${n.toFixed(decimals)}`
+}
 
 function calcMaxDD(vals: number[]) {
   let peak = vals[0] ?? 0, maxDD = 0
@@ -237,10 +242,17 @@ const BENCHMARK_RETS: Record<string, number> = {
 }
 const benchmarkReturn = computed(() => BENCHMARK_RETS[strategy.value?.benchmarkName ?? ''] ?? 4.5)
 const excessReturn = computed(() => {
-  const ex = rnd((strategy.value?.annualReturn ?? 0) - benchmarkReturn.value)
-  return (ex >= 0 ? '+' : '') + ex.toFixed(2)
+  const ann = strategy.value?.annualReturn
+  if (ann == null) return '—'
+  const ex = ann - benchmarkReturn.value
+  const sign = ex >= 0 ? '+' : ''
+  return `${sign}${ex.toFixed(2)}`
 })
-const winRateYear = computed(() => ((strategy.value?.winRate ?? 0) / 100 * 5).toFixed(1))
+const winRateYear = computed(() => {
+  const wr = strategy.value?.winRate
+  if (wr == null) return '—'
+  return ((wr / 100) * 5).toFixed(1)
+})
 
 function winRateClass(w: number) {
   if (w >= 80) return 'gain'; if (w >= 60) return 'mid'; return 'loss'
@@ -270,7 +282,7 @@ const chartKpis = computed(() => {
 
 const compareRows = computed(() => {
   if (!strategy.value) return []
-  const annRet = strategy.value.annualReturn
+  const annRet = strategy.value?.annualReturn ?? 0
   const bmRet = benchmarkReturn.value
   const prodVals = timeSeries.value.map(p => p.ret ?? 0)
   const bmVals = timeSeries.value.map(p => p.benchmark ?? 0)
@@ -381,10 +393,16 @@ async function loadStrategy() {
   loading.value = true
   error.value = ''
   try {
-    strategy.value = await getStrategy(id)
+    const s = await getStrategy(id)
+    if (!s || Object.keys(s).length === 0) {
+      error.value = `未找到策略 ${id}，请检查编号是否正确`
+      strategy.value = null
+      return
+    }
+    strategy.value = s
     await fetchTimeSeries(activePeriod.value)
   } catch (e: any) {
-    error.value = e?.message || '策略加载失败'
+    error.value = e?.message || '策略加载失败，请检查编号是否正确'
     strategy.value = null
   } finally {
     loading.value = false
@@ -426,7 +444,7 @@ function startAIChat() {
 </script>
 
 <style scoped>
-.detail-page { display: flex; flex-direction: column; gap: 20px; padding-bottom: 48px; }
+.detail-page { display: flex; flex-direction: column; gap: 20px; min-height: calc(100vh - 88px); box-sizing: border-box; }
 
 /* 卡片基础 */
 .card {
@@ -434,7 +452,7 @@ function startAIChat() {
   border: 1px solid rgba(255, 255, 255, 0.9);
   box-shadow: 0 4px 24px rgba(41, 61, 84, 0.1);
   border-radius: 20px;
-  padding: 26px 30px;
+  padding: 20px 16px;
 }
 .section-eyebrow { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); margin-bottom: 6px; }
 .section-heading { margin: 0 0 20px; font-size: 22px; font-weight: 700; color: var(--text); }

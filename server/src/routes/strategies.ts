@@ -1,93 +1,89 @@
 import { Router } from 'express'
 import { successResponse } from '../utils/response'
-import * as fs from 'fs'
-import * as path from 'path'
+import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
+import path from 'path'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-interface TimeSeriesPoint {
-  date: string
-  ret: number | null
-  benchmark: number | null
-}
+// 静态导入策略元数据（JSON小，可以打包）
+const strategiesData = JSON.parse(readFileSync(path.join(__dirname, '..', 'data', 'strategies-enhanced.json'), 'utf-8'))
 
-interface StrategyData {
-  seed: number
-  name: string
-  navCategory: string
-  category: string
-  structure: string
-  outlookStars: number
-  owner: string
-  startDate: string
-  logicSummary: string
-  positioning: string
-  tags: string[]
-  annualReturn: number
-  winRate: number
-  maxDrawdown: number
-  volatility: number
-  sharpe: number
-  benchmarkName: string
-  timeSeries?: Record<string, TimeSeriesPoint[]>
-}
-
-let strategiesCache: Record<string, StrategyData> | null = null
-
-function getStrategiesData(): Record<string, StrategyData> {
-  if (!strategiesCache) {
-    const filePath = path.join(__dirname, '..', 'data', 'strategies.json')
-    const raw = fs.readFileSync(filePath, 'utf-8')
-    // Replace NaN with null for valid JSON
-    const clean = raw.replace(/\bNaN\b/g, 'null')
-    strategiesCache = JSON.parse(clean) as Record<string, StrategyData>
+// 动态读取 timeseries（文件大，避免打包）
+let _tsData: Record<string, any[]> | null = null
+function getTSData() {
+  if (!_tsData) {
+    _tsData = JSON.parse(readFileSync(path.join(__dirname, '..', 'data', 'strategies-timeseries.json'), 'utf-8'))
   }
-  return strategiesCache
+  return _tsData
+}
+
+type StrategyData = (typeof strategiesData)['strategies'][number]
+
+// 同时支持 seed（数字）和 id（GS-XX格式）两种key
+const strategiesBySeed = new Map<string, StrategyData>(
+  strategiesData.strategies.map(s => [String(s.seed), s])
+)
+const strategiesById = new Map<string, StrategyData>(
+  strategiesData.strategies.map(s => [String(s.id), s])
+)
+
+function findStrategy(id: string): StrategyData | undefined {
+  return strategiesBySeed.get(id) || strategiesById.get(id)
+}
+
+const periodFilters: Record<string, (pts: { date: string }[]) => { date: string; ret: number; benchmark: number }[]> = {
+  week: pts => pts.slice(-5),
+  month: pts => pts.slice(-22),
+  quarter: pts => pts.slice(-65),
+  year: pts => pts.slice(-252),
+  inception: pts => pts,
 }
 
 const router = Router()
 
-// GET /strategies - List all strategies (metadata only)
+// GET /strategies - List all strategies
 router.get('/strategies', (_req, res) => {
   const requestId = res.locals.requestId
-  const all = getStrategiesData()
-  const strategies = Object.values(all).map(({ timeSeries: _ts, ...meta }) => meta)
-  res.json(successResponse({ strategies }, requestId))
+  res.json(successResponse({ strategies: strategiesData.strategies }, requestId))
 })
 
-// GET /strategies/:id - Get single strategy metadata
+// GET /strategies/:id - 支持 seed数字(55) 和 id格式(GS-55)
 router.get('/strategies/:id', (req, res) => {
   const requestId = res.locals.requestId
   const id = req.params.id
-  const all = getStrategiesData()
-  const strategy = all[id]
+  const strategy = findStrategy(id)
   if (!strategy) {
     return res.status(404).json({ code: 404, message: `策略不存在: ${id}`, requestId })
   }
-  const { timeSeries: _ts, ...meta } = strategy
-  res.json(successResponse({ strategy: meta }, requestId))
+  res.json(successResponse({ strategy }, requestId))
 })
 
-// GET /strategies/:id/timeseries - Get real NAV time series
+// GET /strategies/:id/timeseries - 真实历史净值
 router.get('/strategies/:id/timeseries', (req, res) => {
   const requestId = res.locals.requestId
   const id = req.params.id
   const period = (req.query.period as string) || 'inception'
-  const all = getStrategiesData()
-  const strategy = all[id]
+  const strategy = findStrategy(id)
   if (!strategy) {
     return res.status(404).json({ code: 404, message: `策略不存在: ${id}`, requestId })
   }
-  const ts = strategy.timeSeries || {}
-  const periodData = ts[period] || []
+
+  const ts = getTSData()[String(strategy.seed)] || []
+  const filter = periodFilters[period] || periodFilters.inception
+  const data = filter(ts).map(pt => ({
+    date: pt.date,
+    ret: pt.ret,
+    benchmark: pt.benchmark,
+  }))
+
   res.json(successResponse({
-    strategyId: id,
+    strategyId: String(strategy.seed),
     strategyName: strategy.name,
     benchmarkName: strategy.benchmarkName,
     period,
-    data: periodData,
+    data,
   }, requestId))
 })
 
