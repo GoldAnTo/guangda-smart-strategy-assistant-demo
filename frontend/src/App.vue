@@ -41,9 +41,9 @@ const route = useRoute()
 
 const navItems = computed(() => [
   { path: '/', label: '策略首页' },
-  { path: '/advisor', label: '顾问工作台' },
-  { path: '/compare', label: '方向对比' },
-  { path: '/exhibition', label: '展览模式' },
+  { path: '/advisor', label: 'AI顾问台' },
+  { path: '/compare', label: '产品线诊断' },
+  { path: '/exhibition', label: '大屏展厅' },
   { path: '/recommendation', label: '组合配置' }
 ])
 </script>
@@ -225,13 +225,13 @@ button {
 
 .view-wrap {
   position: relative;
-  padding: 88px 12px 40px;
+  padding: 88px 24px 40px;
   min-height: 100vh;
   box-sizing: border-box;
 }
 
 .page-shell {
-  max-width: 1360px;
+  max-width: 1440px;
   margin: 0 auto;
 }
 
@@ -280,7 +280,7 @@ button {
   }
 
   .view-wrap {
-    padding: 18px;
+    padding: 88px 16px 40px;
   }
 }
 </style>

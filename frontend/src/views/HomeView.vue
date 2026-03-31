@@ -32,35 +32,32 @@
     </header>
 
     <!-- ═══════════════════════════════════════════════ -->
-    <!-- 分类概览卡片 -->
+    <!-- 分类概览标签（简化版，只显示名称） -->
     <!-- ═══════════════════════════════════════════════ -->
     <section class="cat-overview" v-if="!loading && !error">
       <div
         v-for="cat in categoriesWithStrategies"
         :key="cat.name"
-        class="cat-ov-card"
+        class="cat-ov-tag"
         :class="{ active: activeCat === cat.name }"
         @click="toggleCategory(cat.name)"
       >
-        <div class="cov-head">
-          <span class="cov-name">{{ cat.name }}</span>
-          <span class="cov-count">{{ cat.count }}条</span>
-        </div>
-        <div class="cov-metrics">
-          <div class="cov-metric">
-            <span class="cov-mval gain">{{ cat.avgReturn }}</span>
-            <span class="cov-mlab">平均年化</span>
-          </div>
-          <div class="cov-metric">
-            <span class="cov-mval">{{ cat.avgWinRate }}%</span>
-            <span class="cov-mlab">平均胜率</span>
-          </div>
-        </div>
-        <div class="cov-risk">
-          <span class="cov-risk-label">{{ cat.topRisk }}</span>
-        </div>
+        <span class="cot-name">{{ cat.name }}</span>
+        <span class="cot-count">{{ cat.count }}条</span>
       </div>
     </section>
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- 风险等级说明 -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <div class="risk-legend">
+      <span class="risk-legend-title">风险等级说明：</span>
+      <span class="risk-badge risk-R1">R1</span><span class="risk-desc">低风险</span>
+      <span class="risk-badge risk-R2">R2</span><span class="risk-desc">中低风险</span>
+      <span class="risk-badge risk-R3">R3</span><span class="risk-desc">中等风险</span>
+      <span class="risk-badge risk-R4">R4</span><span class="risk-desc">中高风险</span>
+      <span class="risk-badge risk-R5">R5</span><span class="risk-desc">高风险</span>
+    </div>
 
     <!-- ═══════════════════════════════════════════════ -->
     <!-- 搜索 + 排序 + 筛选 -->
@@ -126,17 +123,16 @@
           class="strategy-card card"
           @click="goDetail(s.seed)"
         >
-          <!-- AI推荐标识 -->
-          <div class="card-ai-badge" v-if="s.annualReturn >= 15 && s.winRate >= 80">
-            <span>⭐</span> AI优选
-          </div>
-
           <div class="card-top">
             <div class="card-top-left">
               <span class="card-cat">{{ s.navCategory }}</span>
               <div class="card-stars">
                 <span v-for="n in 5" :key="n" :class="n <= (s.outlookStars || 3) ? 'filled' : ''">★</span>
               </div>
+              <!-- AI推荐标识（移入 card-top-left，正常流） -->
+              <span class="card-ai-chip" v-if="s.annualReturn >= 15 && s.winRate >= 80">
+                <span>⭐</span> AI优选
+              </span>
             </div>
             <!-- 风险等级标签 -->
             <div class="risk-badge" :class="'risk-' + ((s as any).riskLevel || 'R3')">
@@ -347,25 +343,25 @@ onMounted(loadStrategies)
 }
 .advisor-cta:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(158,114,46,0.4); }
 
-/* 分类概览 */
-.cat-overview { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; padding: 16px 0 0; }
-.cat-ov-card {
-  background: rgba(255,255,255,0.84); border: 1.5px solid rgba(255,255,255,0.9);
-  border-radius: 14px; padding: 12px 14px; cursor: pointer;
-  transition: all 0.2s ease; box-shadow: 0 2px 12px rgba(41,61,84,0.05);
+/* 分类概览（简化标签版） */
+.cat-overview { display: flex; flex-wrap: wrap; gap: 8px; padding: 16px 0 12px; }
+.cat-ov-tag {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 16px; border-radius: 999px;
+  border: 1.5px solid rgba(23,55,91,0.15);
+  background: rgba(255,255,255,0.7);
+  cursor: pointer; font-size: 13px;
+  transition: all 0.2s ease;
 }
-.cat-ov-card:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(41,61,84,0.1); border-color: rgba(158,114,46,0.3); }
-.cat-ov-card.active { border-color: var(--gold); background: rgba(158,114,46,0.06); box-shadow: 0 2px 14px rgba(158,114,46,0.12); }
-.cov-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
-.cov-name { font-size: 13px; font-weight: 700; color: var(--text); }
-.cov-count { font-size: 11px; color: var(--muted); }
-.cov-metrics { display: flex; gap: 10px; margin-bottom: 6px; }
-.cov-metric { display: flex; flex-direction: column; gap: 1px; }
-.cov-mval { font-size: 15px; font-weight: 800; font-family: 'DIN Alternate','Bahnschrift',sans-serif; color: var(--blue); }
-.cov-mval.gain { color: #c24a00; }
-.cov-mlab { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
-.cov-risk { }
-.cov-risk-label { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(23,55,91,0.06); color: var(--muted); border: 1px solid rgba(23,55,91,0.1); }
+.cat-ov-tag:hover { border-color: var(--gold); color: var(--gold); background: rgba(158,114,46,0.06); }
+.cat-ov-tag.active { border-color: var(--gold); background: rgba(158,114,46,0.1); color: var(--gold); font-weight: 700; }
+.cot-name { font-weight: 600; color: var(--text); }
+.cot-count { font-size: 11px; color: var(--muted); padding: 1px 7px; border-radius: 999px; background: rgba(23,55,91,0.07); }
+
+/* 风险等级说明 */
+.risk-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding: 0 4px 12px; }
+.risk-legend-title { font-size: 12px; color: var(--muted); margin-right: 4px; }
+.risk-desc { font-size: 12px; color: var(--muted); }
 
 /* 搜索+排序+筛选 */
 .controls-bar { display: flex; justify-content: space-between; align-items: center; padding: 16px 0 0; gap: 12px; flex-wrap: wrap; }
@@ -426,13 +422,14 @@ onMounted(loadStrategies)
 .risk-badge.risk-R5 { background: rgba(248,113,113,0.15); color: #f87171; border: 1px solid rgba(248,113,113,0.3); }
 
 /* AI推荐徽章 */
-.card-ai-badge {
-  position: absolute; top: 10px; right: 10px;
-  display: flex; align-items: center; gap: 3px;
+.card-ai-chip {
+  display: inline-flex; align-items: center; gap: 3px;
   font-size: 10px; font-weight: 700;
   padding: 2px 7px; border-radius: 6px;
   background: rgba(158,114,46,0.12); border: 1px solid rgba(158,114,46,0.3);
   color: var(--gold);
+  margin-left: 6px;
+  flex-shrink: 0;
 }
 .card-name { margin: 0; font-size: 17px; font-weight: 700; color: var(--text); line-height: 1.3; }
 .card-owner { font-size: 12px; color: var(--muted); }
@@ -494,11 +491,9 @@ onMounted(loadStrategies)
   .search-wrap { max-width: 100%; width: 100%; }
   .cat-strategy-grid { grid-template-columns: 1fr 1fr; }
   .loading-grid { padding: 16px; }
-  .cat-overview { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 480px) {
   .cat-strategy-grid { grid-template-columns: 1fr; }
-  .cat-overview { grid-template-columns: 1fr 1fr; }
   .controls-bar { flex-direction: column; align-items: stretch; }
   .sort-tabs { overflow-x: auto; }
 }
