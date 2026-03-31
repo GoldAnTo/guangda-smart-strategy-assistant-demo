@@ -412,10 +412,10 @@
                     <div class="pc-bar-track">
                       <div
                         class="pc-bar-fill"
-                        :style="{ width: Math.max(5, ((portfolioWeights[s.seed] || 20) * (Math.abs(s.annualReturn) / portfolioTotalAbsReturn)).toFixed(0)) + '%', background: getCatColor(s.navCategory) }"
+                        :style="{ width: contribPct(s) + '%', background: getCatColor(s.navCategory) }"
                       ></div>
                     </div>
-                    <div class="pc-contrib">{{ Math.max(5, ((portfolioWeights[s.seed] || 20) * (Math.abs(s.annualReturn) / portfolioTotalAbsReturn)).toFixed(0) }}%</div>
+                    <div class="pc-contrib">{{ contribPct(s) }}%</div>
                   </div>
                 </div>
 
@@ -587,6 +587,11 @@ const coverageDesc = computed(() => {
 
 // ═══════════════ 工具 ═══════════════
 function getCatColor(cat: string) { return CAT_COLORS[cat] || '#6d7c8d' }
+function contribPct(s: StrategyItem): string {
+  const w = portfolioWeights.value[s.seed] || 20
+  const pct = w * Math.abs(s.annualReturn) / portfolioTotalAbsReturn.value
+  return Math.max(5, Math.min(100, pct)).toFixed(0)
+}
 function fmt(v: number | null | undefined, decimals = 2, sign = true): string {
   if (v == null || typeof v !== 'number' || isNaN(v)) return '—'
   return (sign && v >= 0 ? '+' : '') + v.toFixed(decimals)
