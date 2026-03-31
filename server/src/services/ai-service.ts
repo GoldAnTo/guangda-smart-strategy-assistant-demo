@@ -8,11 +8,11 @@ function getModelConfig() {
   }
 }
 
-async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = 30000): Promise<Response> {
+async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = 120000): Promise<Response> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
   try {
-    const response = await fetch(url, { ...options, signal: controller.signal as any })
+    const response = await fetch(url, { ...options, signal: controller.signal })
     clearTimeout(timer)
     return response
   } catch (err: any) {
@@ -24,12 +24,11 @@ async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = 3
   }
 }
 
-// 判断使用 Anthropic 格式还是 OpenAI 格式
 function isAnthropicFormat(url: string): boolean {
   return url.includes('anthropic') || url.includes('minimaxi')
 }
 
-async function requestModel(prompt: string, systemContent: string, temperature: number) {
+async function requestModel(prompt: string, systemContent: string, temperature: number, maxTokens = 4000) {
   const { url, key, name } = getModelConfig()
 
   if (!url || !key) {
@@ -38,7 +37,6 @@ async function requestModel(prompt: string, systemContent: string, temperature: 
 
   let response: Response
   if (isAnthropicFormat(url)) {
-    // Anthropic 格式（MiniMax 等）
     response = await fetchWithTimeout(
       url + '/messages',
       {
@@ -53,13 +51,12 @@ async function requestModel(prompt: string, systemContent: string, temperature: 
           system: systemContent,
           messages: [{ role: 'user', content: prompt }],
           temperature,
-          max_tokens: 2000
+          max_tokens: maxTokens
         })
       },
-      30000
+      120000
     )
   } else {
-    // OpenAI 兼容格式
     response = await fetchWithTimeout(
       url + '/chat/completions',
       {
@@ -75,10 +72,10 @@ async function requestModel(prompt: string, systemContent: string, temperature: 
             { role: 'user', content: prompt }
           ],
           temperature,
-          max_tokens: 2000
+          max_tokens: maxTokens
         })
       },
-      30000
+      120000
     )
   }
 
@@ -93,21 +90,13 @@ async function requestModel(prompt: string, systemContent: string, temperature: 
 const JSON_SYSTEM_PROMPT = 'You must output valid JSON only. Do not include markdown fences or extra commentary.'
 
 const CHAT_SYSTEM_PROMPT = `
-你是一名资管产品与策略沟通助手。
-
-你必须始终遵守以下规则：
+你是一名资管产品与策略沟通助手。你必须始终遵守以下规则：
 - 你不是最终投顾决策人
 - 你不能承诺收益或保本
 - 你不能使用绝对化、误导性或过度营销的话术
-- 你只能围绕给定上下文中的产品、策略、客户偏好与风险提示回答
+- 你的回答必须详尽、深入、有洞察，不要泛泛而谈
 - 如果信息不足，你优先补问，而不是强行下结论
-- 如果问题涉及正式销售判断、敏感争议或超出上下文，明确提示建议进一步人工沟通确认
-
-你的回答风格：
-- 专业但通俗
-- 简洁、克制，自然
-- 先解释，再给方向
-- 不要堆术语，不要写成官话或营销文案
+你的回答风格：专业但通俗，详尽有深度，先解释再给方向。
 `.trim()
 
 function extractAnthropicContent(data: any): string {
@@ -126,11 +115,10 @@ export const aiService = {
   async generateJson(prompt: string): Promise<string> {
     const { url } = getModelConfig()
     for (let attempt = 0; attempt < 2; attempt++) {
-      const data = await requestModel(prompt, JSON_SYSTEM_PROMPT, 0.2)
+      const data = await requestModel(prompt, JSON_SYSTEM_PROMPT, 0.2, 2000)
       const content = isAnthropicFormat(url || '')
         ? extractAnthropicContent(data)
         : extractOpenAIContent(data)
-
       try {
         JSON.parse(content)
         return content
@@ -145,7 +133,7 @@ export const aiService = {
 
   async generateText(prompt: string): Promise<string> {
     const { url } = getModelConfig()
-    const data = await requestModel(prompt, CHAT_SYSTEM_PROMPT, 0.2)
+    const data = await requestModel(prompt, CHAT_SYSTEM_PROMPT, 0.3, 4000)
     return isAnthropicFormat(url || '')
       ? extractAnthropicContent(data)
       : extractOpenAIContent(data)
