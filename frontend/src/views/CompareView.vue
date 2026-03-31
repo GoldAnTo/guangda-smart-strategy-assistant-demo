@@ -25,71 +25,10 @@
     <!-- ═══ 主内容 ═══ -->
     <div class="compare-layout">
 
-      <!-- ═══ 左侧：客户画像筛选面板 ═══ -->
+      <!-- ═══ 左侧：入选策略列表 ═══ -->
       <div class="selector-wrap">
       <aside class="selector-panel card">
         <div class="panel-head">
-          <div class="section-eyebrow">Client profile</div>
-          <div class="panel-count">筛选条件</div>
-        </div>
-
-        <div class="filter-group">
-          <div class="filter-label">风险偏好</div>
-          <div class="risk-options">
-            <button
-              v-for="r in riskOptions"
-              :key="r.value"
-              class="risk-opt"
-              :class="{ active: clientProfile.risk === r.value }"
-              @click="clientProfile.risk = r.value"
-            >
-              <span class="risk-dot" :style="{ background: r.color }"></span>
-              {{ r.label }}
-            </button>
-          </div>
-        </div>
-
-        <div class="filter-group">
-          <div class="filter-label">收益目标</div>
-          <div class="return-options">
-            <button
-              v-for="r in returnOptions"
-              :key="r.value"
-              class="ret-opt"
-              :class="{ active: clientProfile.returnTarget === r.value }"
-              @click="clientProfile.returnTarget = r.value"
-            >
-              {{ r.label }}
-            </button>
-          </div>
-        </div>
-
-        <div class="filter-group">
-          <div class="filter-label">资金规模</div>
-          <div class="return-options">
-            <button
-              v-for="s in scaleOptions"
-              :key="s.value"
-              class="ret-opt"
-              :class="{ active: clientProfile.scale === s.value }"
-              @click="clientProfile.scale = s.value"
-            >
-              {{ s.label }}
-            </button>
-          </div>
-        </div>
-
-        <div class="ai-diagnosis-section">
-          <button class="ai-diagnosis-btn" @click="runAiDiagnosis" :disabled="aiLoading">
-            <span class="ai-icon" :class="{ spinning: aiLoading }">🧠</span>
-            <div class="ai-btn-text">
-              <div class="ai-btn-title">{{ aiLoading ? 'AI 诊断中...' : '生成 AI 组合建议' }}</div>
-              <div class="ai-btn-sub">基于 {{ filteredStrategies.length }} 条策略分析</div>
-            </div>
-          </button>
-        </div>
-
-        <div class="panel-head" style="margin-top: 8px;">
           <div class="section-eyebrow">Portfolio</div>
           <div class="panel-count">{{ selectedIds.length }} 条入选</div>
         </div>
@@ -111,7 +50,7 @@
             </div>
           </div>
           <div v-if="selectedIds.length === 0" class="pick-empty">
-            调整筛选条件或点击上方按钮启动 AI 诊断
+            在右侧 AI 诊断区生成组合建议后，选入策略将显示在此
           </div>
         </div>
       </aside>
@@ -195,6 +134,67 @@
 
         <!-- 模式二：AI组合诊断 -->
         <template v-if="activeMode === 'ai'">
+          <!-- 客户画像筛选 + AI按钮 -->
+          <section class="result-section card ai-filter-card">
+            <div class="section-eyebrow">Client profile</div>
+            <h2 class="section-heading">AI 组合诊断</h2>
+
+            <div class="ai-filter-row">
+              <div class="filter-group">
+                <div class="filter-label">风险偏好</div>
+                <div class="risk-options">
+                  <button
+                    v-for="r in riskOptions"
+                    :key="r.value"
+                    class="risk-opt"
+                    :class="{ active: clientProfile.risk === r.value }"
+                    @click="clientProfile.risk = r.value"
+                  >
+                    <span class="risk-dot" :style="{ background: r.color }"></span>
+                    {{ r.label }}
+                  </button>
+                </div>
+              </div>
+              <div class="filter-group">
+                <div class="filter-label">收益目标</div>
+                <div class="return-options">
+                  <button
+                    v-for="r in returnOptions"
+                    :key="r.value"
+                    class="ret-opt"
+                    :class="{ active: clientProfile.returnTarget === r.value }"
+                    @click="clientProfile.returnTarget = r.value"
+                  >
+                    {{ r.label }}
+                  </button>
+                </div>
+              </div>
+              <div class="filter-group">
+                <div class="filter-label">资金规模</div>
+                <div class="return-options">
+                  <button
+                    v-for="s in scaleOptions"
+                    :key="s.value"
+                    class="ret-opt"
+                    :class="{ active: clientProfile.scale === s.value }"
+                    @click="clientProfile.scale = s.value"
+                  >
+                    {{ s.label }}
+                  </button>
+                </div>
+              </div>
+              <div class="ai-diagnosis-section">
+                <button class="ai-diagnosis-btn" @click="runAiDiagnosis" :disabled="aiLoading">
+                  <span class="ai-icon" :class="{ spinning: aiLoading }">🧠</span>
+                  <div class="ai-btn-text">
+                    <div class="ai-btn-title">{{ aiLoading ? 'AI 诊断中...' : '生成 AI 组合建议' }}</div>
+                    <div class="ai-btn-sub">基于 {{ filteredStrategies.length }} 条策略分析</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </section>
+
           <section v-if="aiResult" class="result-section card ai-result-card">
             <div class="ai-result-header">
               <div class="section-eyebrow">AI Diagnosis · Generated {{ new Date().toLocaleDateString('zh-CN') }}</div>
@@ -974,6 +974,30 @@ onUnmounted(() => {
 .risk-badge.risk-R3 { background: rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); }
 .risk-badge.risk-R4 { background: rgba(249,115,22,0.15); color: #f97316; border: 1px solid rgba(249,115,22,0.3); }
 .risk-badge.risk-R5 { background: rgba(248,113,113,0.15); color: #f87171; border: 1px solid rgba(248,113,113,0.3); }
+
+/* AI诊断筛选卡 */
+.ai-filter-card { padding: 20px 22px; }
+.ai-filter-row { display: flex; flex-direction: column; gap: 14px; }
+.ai-filter-row .filter-group { display: flex; flex-direction: column; gap: 6px; }
+.ai-filter-row .filter-label { font-size: 12px; font-weight: 600; color: var(--text); letter-spacing: 0.04em; }
+.ai-filter-row .risk-options { display: flex; flex-direction: row; flex-wrap: wrap; gap: 6px; }
+.ai-filter-row .risk-opt { display: flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 10px; border: 1.5px solid transparent; background: rgba(23,55,91,0.05); cursor: pointer; font-size: 13px; color: var(--text); transition: all 0.2s; }
+.ai-filter-row .risk-opt:hover { border-color: rgba(23,55,91,0.2); }
+.ai-filter-row .risk-opt.active { border-color: var(--blue); background: rgba(23,55,91,0.08); color: var(--blue); font-weight: 600; }
+.ai-filter-row .risk-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.ai-filter-row .return-options { display: flex; flex-wrap: wrap; gap: 6px; }
+.ai-filter-row .ret-opt { padding: 6px 14px; border-radius: 999px; border: 1px solid rgba(23,55,91,0.15); background: transparent; color: var(--muted); cursor: pointer; font-size: 12px; transition: all 0.2s; }
+.ai-filter-row .ret-opt:hover { border-color: var(--blue); color: var(--blue); }
+.ai-filter-row .ret-opt.active { background: var(--blue); border-color: var(--blue); color: #fff; font-weight: 600; }
+.ai-filter-row .ai-diagnosis-section { margin-top: 4px; }
+.ai-filter-row .ai-diagnosis-btn { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-radius: 14px; border: none; background: linear-gradient(135deg,#9e722e,#c24a00); color: #fff; cursor: pointer; font-size: 14px; text-align: left; transition: all 0.25s; box-shadow: 0 4px 16px rgba(158,114,46,0.25); width: 100%; }
+.ai-filter-row .ai-diagnosis-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 22px rgba(158,114,46,0.35); }
+.ai-filter-row .ai-diagnosis-btn:disabled { opacity: 0.75; cursor: not-allowed; }
+.ai-filter-row .ai-icon { font-size: 22px; flex-shrink: 0; }
+.ai-filter-row .ai-icon.spinning { animation: spin 1s linear infinite; }
+.ai-filter-row .ai-btn-text { display: flex; flex-direction: column; gap: 2px; }
+.ai-filter-row .ai-btn-title { font-size: 14px; font-weight: 700; }
+.ai-filter-row .ai-btn-sub { font-size: 11px; opacity: 0.8; }
 
 /* AI诊断结果 */
 .ai-result-card { padding: 24px 22px; }
