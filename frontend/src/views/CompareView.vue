@@ -343,11 +343,6 @@
                 <div class="alloc-list">
                   <div v-for="s in portfolioStrategies" :key="s.seed" class="alloc-row">
                     <div class="ar-name">{{ s.name }}</div>
-                    <div class="ar-controls">
-                      <button class="ar-btn" @click="adjustWeight(s.seed, -5)">−</button>
-                      <div class="ar-val">{{ portfolioWeights[s.seed] || 20 }}%</div>
-                      <button class="ar-btn" @click="adjustWeight(s.seed, 5)">+</button>
-                    </div>
                     <div class="ar-slider-wrap">
                       <input
                         type="range"
@@ -357,6 +352,19 @@
                         :value="portfolioWeights[s.seed] || 20"
                         @input="setWeight(s.seed, Number(($event.target as HTMLInputElement).value))"
                       />
+                    </div>
+                    <div class="ar-controls">
+                      <button class="ar-btn" @click="adjustWeight(s.seed, -1)">−</button>
+                      <input
+                        type="number"
+                        class="ar-input"
+                        min="5"
+                        max="80"
+                        :value="portfolioWeights[s.seed] || 20"
+                        @change="setWeight(s.seed, Math.max(5, Math.min(80, Number(($event.target as HTMLInputElement).value))))"
+                      />
+                      <span class="ar-pct">%</span>
+                      <button class="ar-btn" @click="adjustWeight(s.seed, 1)">+</button>
                     </div>
                   </div>
                 </div>
@@ -978,6 +986,10 @@ onUnmounted(() => {
 .ar-val { font-size: 15px; font-weight: 700; font-family: 'DIN Alternate','Bahnschrift',sans-serif; min-width: 38px; text-align: center; }
 .ar-slider-wrap { flex: 1; min-width: 80px; }
 .ar-slider { width: 100%; accent-color: var(--gold); cursor: pointer; }
+.ar-input { width: 44px; text-align: center; border: 1px solid rgba(23,55,91,0.18); border-radius: 6px; padding: 3px 5px; font-size: 14px; font-weight: 700; font-family: 'DIN Alternate','Bahnschrift',sans-serif; color: var(--text); background: rgba(255,255,255,0.9); outline: none; -moz-appearance: textfield; }
+.ar-input::-webkit-outer-spin-button, .ar-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.ar-input:focus { border-color: var(--gold); }
+.ar-pct { font-size: 13px; font-weight: 600; color: var(--muted); flex-shrink: 0; }
 .alloc-total { font-size: 13px; color: var(--muted); text-align: center; padding: 10px; border-radius: 8px; background: rgba(23,55,91,0.04); }
 .alloc-total strong { color: var(--text); }
 .alloc-total.warning strong { color: #f97316; }
