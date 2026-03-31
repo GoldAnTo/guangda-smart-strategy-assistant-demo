@@ -713,44 +713,19 @@ function togglePortfolio(seed: number) {
     delete portfolioWeights.value[seed]
   } else if (portfolioIds.value.length < 5) {
     portfolioIds.value.push(seed)
-    if (!portfolioWeights.value[seed]) {
-      portfolioWeights.value[seed] = Math.floor(100 / (portfolioIds.value.length))
-    }
-    const total = portfolioIds.value.reduce((s, id) => s + (portfolioWeights.value[id] || 20), 0)
-    if (total !== 100) {
-      const factor = 100 / total
-      portfolioIds.value.forEach(id => { portfolioWeights.value[id] = Math.round(portfolioWeights.value[id] * factor) })
-    }
+    portfolioWeights.value[seed] = 20
   }
   portfolioGenerated.value = false
 }
 
 function adjustWeight(seed: number, delta: number) {
   const current = portfolioWeights.value[seed] || 20
-  const next = Math.max(5, Math.min(80, current + delta))
-  const diff = next - current
-  portfolioWeights.value[seed] = next
-  const others = portfolioStrategies.value.filter(s => s.seed !== seed)
-  if (others.length) {
-    const perOther = Math.round(diff / others.length)
-    others.forEach(s => {
-      portfolioWeights.value[s.seed] = Math.max(5, Math.min(80, (portfolioWeights.value[s.seed] || 20) - perOther))
-    })
-  }
+  portfolioWeights.value[seed] = Math.max(5, Math.min(80, current + delta))
   portfolioGenerated.value = false
 }
 
 function setWeight(seed: number, val: number) {
-  const current = portfolioWeights.value[seed] || 20
-  const delta = val - current
-  portfolioWeights.value[seed] = val
-  const others = portfolioStrategies.value.filter(s => s.seed !== seed)
-  if (others.length) {
-    const perOther = Math.round(delta / others.length)
-    others.forEach(s => {
-      portfolioWeights.value[s.seed] = Math.max(5, Math.min(80, portfolioWeights.value[s.seed] - perOther))
-    })
-  }
+  portfolioWeights.value[seed] = Math.max(5, Math.min(80, val))
   portfolioGenerated.value = false
 }
 
