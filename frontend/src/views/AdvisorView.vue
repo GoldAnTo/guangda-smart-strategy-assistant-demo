@@ -199,6 +199,19 @@
             </div>
           </div>
 
+          <!-- 合规风险提示 -->
+          <div class="compliance-notice" v-if="hasSearched && result && !result.shouldEscalate">
+            <div class="cn-icon">⚠️</div>
+            <div class="cn-body">
+              <div class="cn-title">重要提示</div>
+              <div class="cn-text">
+                本页面所展示的策略信息仅供参考，不构成任何投资建议。历史业绩不代表未来表现，投资有风险，决策需谨慎。请在做出任何投资决定前，仔细阅读产品说明书、风险揭示书及相关法律文件，并根据自身的风险承受能力、投资目标和经济状况进行独立判断。
+              </div>
+              <div class="cn-divider"></div>
+              <div class="cn-sub">如有疑问，请联系您的客户经理或拨打光大资管官方客服热线。</div>
+            </div>
+          </div>
+
           <!-- AI Narrative -->
           <div class="narrative-card card" v-if="narrative || narrativeLoading">
             <div class="nc-head">
@@ -710,6 +723,22 @@ onMounted(async () => {
 @media (max-width: 1100px) {
   .advisor-layout { grid-template-columns: 1fr; }
 }
+/* Compliance Notice */
+.compliance-notice {
+  display: flex; gap: 14px;
+  padding: 18px 20px;
+  background: rgba(23,55,91,0.04);
+  border: 1px solid rgba(23,55,91,0.12);
+  border-radius: 14px;
+  margin-top: 8px;
+}
+.cn-icon { font-size: 22px; flex-shrink: 0; padding-top: 2px; }
+.cn-body { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.cn-title { font-size: 13px; font-weight: 700; color: var(--text); }
+.cn-text { font-size: 12px; color: var(--muted); line-height: 1.85; }
+.cn-divider { height: 1px; background: rgba(23,55,91,0.08); }
+.cn-sub { font-size: 11px; color: var(--muted); line-height: 1.6; }
+
 @media (max-width: 700px) {
   .advisor-header { flex-direction: column; gap: 16px; }
   .ah-right { align-self: flex-start; }

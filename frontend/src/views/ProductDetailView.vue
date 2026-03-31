@@ -175,6 +175,20 @@
     </section>
 
     <!-- ═══════════════════════════════════════════════ -->
+    <!-- 合规风险提示 -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <div class="risk-disclosure">
+      <div class="rd-icon">⚠️</div>
+      <div class="rd-content">
+        <div class="rd-title">风险提示与免责声明</div>
+        <div class="rd-text">
+          本页面所展示的策略信息及历史业绩数据仅供参考，不构成光大资管对任何投资者的投资建议或投资邀约。<strong>历史业绩不代表未来表现</strong>，各策略过往业绩及业绩比较基准的历史数据不预示其未来回报。投资有风险，投资者应充分了解产品风险收益特征，根据自身的投资目的、投资期限、投资经验、资产状况等因素，审慎做出投资决策。如需了解具体产品信息，请参阅相关产品说明书、风险揭示书及法律文件，或联系您的专属客户经理。
+        </div>
+        <div class="rd-meta">光大资管 · 产品研究平台 · 仅供内部参考</div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════ -->
     <!-- 操作按钮 -->
     <!-- ═══════════════════════════════════════════════ -->
     <div class="action-row">
@@ -590,4 +604,20 @@ function startAIChat() {
   .head-kpis { flex-direction: column; }
   .kpi-sep { width: 100%; height: 1px; }
 }
+
+/* 合规风险提示 */
+.risk-disclosure {
+  display: flex; gap: 14px;
+  padding: 18px 20px;
+  background: rgba(23,55,91,0.04);
+  border: 1px solid rgba(23,55,91,0.1);
+  border-radius: 14px;
+  margin-top: 8px;
+}
+.rd-icon { font-size: 22px; flex-shrink: 0; padding-top: 2px; }
+.rd-content { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.rd-title { font-size: 13px; font-weight: 700; color: var(--text); }
+.rd-text { font-size: 12px; color: var(--muted); line-height: 1.85; }
+.rd-text strong { color: var(--text); font-weight: 600; }
+.rd-meta { font-size: 11px; color: rgba(23,55,91,0.4); padding-top: 4px; border-top: 1px solid rgba(23,55,91,0.06); }
 </style>

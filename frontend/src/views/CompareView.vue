@@ -334,6 +334,132 @@
           </section>
         </template>
 
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- 模式三：持仓组合分析 -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <template v-if="activeMode === 'portfolio'">
+          <section class="result-section card portfolio-section">
+            <div class="section-eyebrow">Portfolio analysis</div>
+            <h2 class="section-heading">持仓组合分析</h2>
+
+            <!-- 左侧：策略选择 -->
+            <div class="portfolio-builder">
+              <div class="pb-left">
+                <div class="pb-title">选择持仓策略（最多5条）</div>
+                <div class="pb-hint">从左侧策略库勾选，或从下方快速添加</div>
+                <div class="pb-strategy-list">
+                  <div
+                    v-for="s in allStrategies"
+                    :key="s.seed"
+                    class="pb-strategy-row"
+                    :class="{ selected: portfolioIds.includes(s.seed) }"
+                    @click="togglePortfolio(s.seed)"
+                  >
+                    <div class="pb-check" :class="{ active: portfolioIds.includes(s.seed) }">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    </div>
+                    <div class="pb-sinfo">
+                      <div class="pb-sname">{{ s.name }}</div>
+                      <div class="pb-scat">{{ s.navCategory }}</div>
+                    </div>
+                    <div class="pb-sret" :class="s.annualReturn >= 0 ? 'gain' : 'loss'">
+                      {{ s.annualReturn >= 0 ? '+' : '' }}{{ s.annualReturn.toFixed(2) }}%
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 右侧：权重分配 + 组合结果 -->
+              <div class="pb-right" v-if="portfolioStrategies.length > 0">
+                <!-- 权重分配 -->
+                <div class="alloc-title">配置权重分配</div>
+                <div class="alloc-list">
+                  <div v-for="s in portfolioStrategies" :key="s.seed" class="alloc-row">
+                    <div class="ar-name">{{ s.name }}</div>
+                    <div class="ar-controls">
+                      <button class="ar-btn" @click="adjustWeight(s.seed, -5)">−</button>
+                      <div class="ar-val">{{ portfolioWeights[s.seed] || 20 }}%</div>
+                      <button class="ar-btn" @click="adjustWeight(s.seed, 5)">+</button>
+                    </div>
+                    <div class="ar-slider-wrap">
+                      <input
+                        type="range"
+                        class="ar-slider"
+                        min="5"
+                        max="80"
+                        :value="portfolioWeights[s.seed] || 20"
+                        @input="setWeight(s.seed, Number(($event.target as HTMLInputElement).value))"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 权重归一化提示 -->
+                <div class="alloc-total" :class="{ warning: portfolioTotal !== 100 }">
+                  权重合计：<strong>{{ portfolioTotal }}%</strong>
+                  <span v-if="portfolioTotal !== 100" class="alloc-warning">（需等于100%）</span>
+                </div>
+
+                <!-- 组合整体指标 -->
+                <div class="port-metrics" v-if="portfolioTotal === 100">
+                  <div class="port-m-title">组合综合指标</div>
+                  <div class="port-m-grid">
+                    <div class="port-m-item">
+                      <div class="pmi-val gain">{{ portfolioMetrics.return }}</div>
+                      <div class="pmi-label">加权年化收益</div>
+                    </div>
+                    <div class="port-m-item">
+                      <div class="pmi-val loss">{{ portfolioMetrics.drawdown }}</div>
+                      <div class="pmi-label">加权最大回撤</div>
+                    </div>
+                    <div class="port-m-item">
+                      <div class="pmi-val">{{ portfolioMetrics.sharpe }}</div>
+                      <div class="pmi-label">加权夏普比率</div>
+                    </div>
+                    <div class="port-m-item">
+                      <div class="pmi-val">{{ portfolioMetrics.coverage }}</div>
+                      <div class="pmi-label">风险分散度</div>
+                    </div>
+                  </div>
+
+                  <!-- 分散度说明 -->
+                  <div class="coverage-bar-wrap">
+                    <div class="cbw-label">风险分散效果</div>
+                    <div class="cbw-track">
+                      <div class="cbw-fill" :style="{ width: coveragePct + '%', background: coverageColor }"></div>
+                    </div>
+                    <div class="cbw-desc">{{ coverageDesc }}</div>
+                  </div>
+                </div>
+
+                <!-- 风险收益对比条 -->
+                <div class="port-compare" v-if="portfolioTotal === 100">
+                  <div class="pc-title">各策略贡献度对比</div>
+                  <div v-for="s in portfolioStrategies" :key="s.seed" class="pc-row">
+                    <div class="pc-name">{{ s.name }}</div>
+                    <div class="pc-bar-track">
+                      <div
+                        class="pc-bar-fill"
+                        :style="{ width: ((portfolioWeights[s.seed] || 20) * (Math.abs(s.annualReturn) / portfolioTotalAbsReturn)).toFixed(0) + '%', background: getCatColor(s.navCategory) }"
+                      ></div>
+                    </div>
+                    <div class="pc-contrib">{{ ((portfolioWeights[s.seed] || 20) * (Math.abs(s.annualReturn) / portfolioTotalAbsReturn)).toFixed(0) }}%</div>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- 未选择状态 -->
+              <div class="pb-empty" v-else>
+                <div class="pbe-icon">📊</div>
+                <div class="pbe-title">请从左侧选择持仓策略</div>
+                <div class="pbe-sub">最多选择5条策略进行组合分析</div>
+              </div>
+
+            </div>
+          </section>
+        </template>
+
       </div>
     </div>
   </div>
@@ -341,6 +467,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+
 import { listStrategies, type StrategyItem } from '../services/strategy'
 import * as echarts from 'echarts'
 
@@ -362,9 +489,114 @@ const CAT_COLORS: Record<string, string> = {
 const modes = [
   { key: 'map', label: '产品地图', icon: '🗺️' },
   { key: 'ai', label: 'AI诊断', icon: '🧠' },
+  { key: 'portfolio', label: '持仓组合', icon: '📊' },
 ]
 
-const activeMode = ref<'map' | 'ai'>('map')
+const activeMode = ref<'map' | 'ai' | 'portfolio'>('map')
+
+// ── 持仓组合状态 ─────────────────────────────────
+const portfolioIds = ref<number[]>([])
+const portfolioWeights = ref<Record<number, number>>({})
+
+const portfolioStrategies = computed(() =>
+  portfolioIds.value.map(id => allStrategies.value.find(s => s.seed === id)).filter(Boolean) as StrategyItem[]
+)
+
+const portfolioTotal = computed(() =>
+  portfolioStrategies.value.reduce((sum, s) => sum + (portfolioWeights.value[s.seed] || 20), 0)
+)
+
+const portfolioTotalAbsReturn = computed(() =>
+  portfolioStrategies.value.reduce((sum, s) => sum + Math.abs(s.annualReturn), 0) || 1
+)
+
+const portfolioMetrics = computed(() => {
+  if (portfolioTotal.value !== 100) return { return: '—', drawdown: '—', sharpe: '—', coverage: '—' }
+  const strategies = portfolioStrategies.value
+  const avgReturn = strategies.reduce((sum, s) => {
+    const w = (portfolioWeights.value[s.seed] || 20) / 100
+    return sum + s.annualReturn * w
+  }, 0)
+  const avgDrawdown = strategies.reduce((sum, s) => {
+    const w = (portfolioWeights.value[s.seed] || 20) / 100
+    return sum + (s.maxDrawdown || 0) * w
+  }, 0)
+  const sharpe = avgDrawdown > 0 ? (avgReturn / avgDrawdown) : 0
+  return {
+    return: `${avgReturn >= 0 ? '+' : ''}${avgReturn.toFixed(2)}%`,
+    drawdown: `-${avgDrawdown.toFixed(2)}%`,
+    sharpe: sharpe.toFixed(2),
+    coverage: ['低', '中', '高'][Math.min(Math.floor(strategies.length / 2), 2)],
+  }
+})
+
+const coveragePct = computed(() => {
+  const n = portfolioStrategies.value.length
+  return Math.min(n * 20, 95)
+})
+
+const coverageColor = computed(() => {
+  const n = portfolioStrategies.value.length
+  if (n <= 1) return '#f87171'
+  if (n <= 2) return '#f59e0b'
+  if (n <= 3) return '#58c7ff'
+  return '#4ade80'
+})
+
+const coverageDesc = computed(() => {
+  const n = portfolioStrategies.value.length
+  if (n <= 1) return '单策略持仓，无风险分散'
+  if (n <= 2) return '少量分散，组合风险中等'
+  if (n <= 3) return '适度分散，组合风险较可控'
+  return '充分分散，组合风险分散效果良好'
+})
+
+function togglePortfolio(seed: number) {
+  const idx = portfolioIds.value.indexOf(seed)
+  if (idx >= 0) {
+    portfolioIds.value.splice(idx, 1)
+    delete portfolioWeights.value[seed]
+  } else if (portfolioIds.value.length < 5) {
+    portfolioIds.value.push(seed)
+    if (!portfolioWeights.value[seed]) {
+      portfolioWeights.value[seed] = Math.floor(100 / (portfolioIds.value.length))
+    }
+    // 归一化
+    const total = portfolioIds.value.reduce((s, id) => s + (portfolioWeights.value[id] || 20), 0)
+    if (total !== 100) {
+      const factor = 100 / total
+      portfolioIds.value.forEach(id => { portfolioWeights.value[id] = Math.round(portfolioWeights.value[id] * factor) })
+    }
+  }
+}
+
+function adjustWeight(seed: number, delta: number) {
+  const current = portfolioWeights.value[seed] || 20
+  const next = Math.max(5, Math.min(80, current + delta))
+  const diff = next - current
+  portfolioWeights.value[seed] = next
+  // 从其他策略补回来
+  const others = portfolioStrategies.value.filter(s => s.seed !== seed)
+  if (others.length) {
+    const perOther = Math.round(diff / others.length)
+    others.forEach(s => {
+      portfolioWeights.value[s.seed] = Math.max(5, portfolioWeights.value[s.seed] + perOther)
+    })
+  }
+}
+
+function setWeight(seed: number, val: number) {
+  const current = portfolioWeights.value[seed] || 20
+  const delta = val - current
+  portfolioWeights.value[seed] = val
+  const others = portfolioStrategies.value.filter(s => s.seed !== seed)
+  if (others.length) {
+    const perOther = Math.round(delta / others.length)
+    others.forEach(s => {
+      portfolioWeights.value[s.seed] = Math.max(5, Math.min(80, portfolioWeights.value[s.seed] - perOther))
+    })
+  }
+}
 
 const riskOptions = [
   { value: 'R3', label: '稳健型', color: '#f59e0b' },
@@ -898,5 +1130,88 @@ onUnmounted(() => {
   .map-quadrant-guide { grid-template-columns: repeat(2, 1fr); }
   .portfolio-metrics { flex-direction: column; }
   .pm-divider { width: 80%; height: 1px; }
+}
+
+/* ── 持仓组合分析 ── */
+.portfolio-builder {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 20px;
+  margin-top: 16px;
+}
+.pb-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.pb-hint { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+.pb-strategy-list { display: flex; flex-direction: column; gap: 5px; max-height: 520px; overflow-y: auto; }
+.pb-strategy-list::-webkit-scrollbar { width: 3px; }
+.pb-strategy-list::-webkit-scrollbar-thumb { background: rgba(23,55,91,0.15); border-radius: 2px; }
+.pb-strategy-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 10px;
+  border: 1.5px solid transparent;
+  background: rgba(23,55,91,0.04);
+  cursor: pointer; transition: all 0.2s;
+}
+.pb-strategy-row:hover { border-color: rgba(23,55,91,0.2); background: rgba(23,55,91,0.07); }
+.pb-strategy-row.selected { border-color: var(--gold); background: rgba(158,114,46,0.07); }
+.pb-check { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid rgba(23,55,91,0.2); flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+.pb-check.active { background: var(--gold); border-color: var(--gold); color: #fff; }
+.pb-check svg { width: 11px; height: 11px; }
+.pb-sinfo { flex: 1; min-width: 0; }
+.pb-sname { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pb-scat { font-size: 11px; color: var(--muted); }
+.pb-sret { font-size: 14px; font-weight: 700; font-family: 'DIN Alternate','Bahnschrift',sans-serif; flex-shrink: 0; }
+
+/* 权重分配 */
+.pb-right { display: flex; flex-direction: column; gap: 16px; }
+.alloc-title { font-size: 13px; font-weight: 700; color: var(--text); }
+.alloc-list { display: flex; flex-direction: column; gap: 8px; }
+.alloc-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; background: rgba(23,55,91,0.04); }
+.ar-name { flex: 1; font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.ar-controls { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.ar-btn { width: 26px; height: 26px; border-radius: 6px; border: 1px solid rgba(23,55,91,0.15); background: rgba(255,255,255,0.8); color: var(--text); cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+.ar-btn:hover { border-color: var(--gold); color: var(--gold); }
+.ar-val { font-size: 15px; font-weight: 700; font-family: 'DIN Alternate','Bahnschrift',sans-serif; min-width: 38px; text-align: center; }
+.ar-slider-wrap { flex: 1; min-width: 80px; }
+.ar-slider { width: 100%; accent-color: var(--gold); cursor: pointer; }
+.alloc-total { font-size: 13px; color: var(--muted); text-align: center; padding: 10px; border-radius: 8px; background: rgba(23,55,91,0.04); }
+.alloc-total strong { color: var(--text); }
+.alloc-total.warning strong { color: #f97316; }
+.alloc-warning { color: #f97316; font-size: 12px; margin-left: 6px; }
+
+/* 组合指标 */
+.port-metrics { background: rgba(23,55,91,0.04); border-radius: 12px; padding: 16px; }
+.port-m-title { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+.port-m-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px; }
+.port-m-item { text-align: center; }
+.pmi-val { font-size: 22px; font-weight: 900; font-family: 'DIN Alternate','Bahnschrift',sans-serif; }
+.pmi-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+.coverage-bar-wrap { display: flex; align-items: center; gap: 10px; }
+.cbw-label { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.cbw-track { flex: 1; height: 6px; border-radius: 3px; background: rgba(23,55,91,0.1); overflow: hidden; }
+.cbw-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+.cbw-desc { font-size: 11px; color: var(--muted); white-space: nowrap; }
+
+/* 饼图 */
+.port-pie-wrap { }
+.pie-chart { height: 200px; }
+
+/* 贡献度对比 */
+.port-compare { }
+.pc-title { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+.pc-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.pc-name { font-size: 12px; color: var(--text); width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
+.pc-bar-track { flex: 1; height: 8px; border-radius: 4px; background: rgba(23,55,91,0.08); overflow: hidden; }
+.pc-bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
+.pc-contrib { font-size: 12px; font-weight: 600; color: var(--muted); width: 32px; text-align: right; flex-shrink: 0; }
+
+/* 未选择空状态 */
+.pb-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 60px 20px; text-align: center; }
+.pbe-icon { font-size: 48px; }
+.pbe-title { font-size: 18px; font-weight: 700; color: var(--text); }
+.pbe-sub { font-size: 13px; color: var(--muted); }
+
+@media (max-width: 900px) {
+  .portfolio-builder { grid-template-columns: 1fr; }
+  .port-m-grid { grid-template-columns: repeat(2, 1fr); }
 }
 </style>
