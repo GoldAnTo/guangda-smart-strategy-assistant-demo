@@ -650,7 +650,7 @@ onMounted(async () => {
 .rec-page { display: flex; flex-direction: column; gap: 20px; padding-bottom: 60px; }
 
 /* 标题 */
-.rec-header { padding: 20px 16px 16px; border-bottom: 1px solid rgba(23,55,91,0.08); }
+.rec-header { padding: 20px 16px 16px; border-bottom: 1px solid rgba(23,55,91,0.08); position: sticky; top: 0; z-index: 10; background: rgba(248,242,233,0.95); backdrop-filter: blur(12px); }
 .rec-header h1 { margin: 8px 0 6px; font-size: 34px; }
 .rec-header .page-lead { margin: 0; color: var(--muted); font-size: 14px; }
 
