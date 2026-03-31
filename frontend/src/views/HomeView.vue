@@ -366,7 +366,10 @@ onMounted(loadStrategies)
 .risk-desc { font-size: 12px; color: var(--muted); }
 
 /* 搜索+排序+筛选 */
-.controls-bar { display: flex; justify-content: space-between; align-items: center; padding: 16px 0 0; gap: 12px; flex-wrap: wrap; }
+.controls-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px 0 0; gap: 12px; flex-wrap: wrap;
+}
 .search-wrap { position: relative; flex: 1; max-width: 400px; }
 .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: var(--muted); }
 .search-input { width: 100%; padding: 9px 40px 9px 40px; border-radius: 10px; border: 1px solid rgba(23,55,91,0.15); background: rgba(255,255,255,0.8); color: var(--text); font-size: 13px; outline: none; box-sizing: border-box; }
