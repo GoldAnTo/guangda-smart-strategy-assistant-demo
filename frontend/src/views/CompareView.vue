@@ -376,7 +376,7 @@
 
                 <!-- 生成组合分析按钮 -->
                 <div class="port-gen-btn-wrap" v-if="portfolioTotal === 100">
-                  <button class="port-gen-btn" @click="portfolioGenerated = true" :disabled="portfolioGenerated">
+                  <button class="port-gen-btn" @click="onGeneratePortfolio" :disabled="portfolioGenerated">
                     🚀 生成组合分析
                   </button>
                 </div>
@@ -409,6 +409,50 @@
                       <div class="cbw-fill" :style="{ width: coveragePct + '%', background: coverageColor }"></div>
                     </div>
                     <div class="cbw-desc">{{ coverageDesc }}</div>
+                  </div>
+
+                  <!-- 指标算法说明 -->
+                  <div class="algo-section">
+                    <div class="algo-title">📐 指标计算公式</div>
+                    <div class="algo-formula">
+                      <div class="af-row">
+                        <div class="af-name">加权年化收益</div>
+                        <div class="af-formula">Σ(策略i权重 × 策略i年化收益率)</div>
+                      </div>
+                      <div class="af-example" v-if="portfolioStrategies.length">
+                        <template v-for="(s, i) in portfolioStrategies" :key="s.seed">
+                          <span v-if="i > 0"> + </span><span class="af-w">{{ portfolioWeights[s.seed] || 20 }}%</span> × <span class="af-m">{{ s.annualReturn >= 0 ? '+' : '' }}{{ s.annualReturn.toFixed(2) }}%</span>
+                        </template>
+                        <span class="af-eq"> = </span>
+                        <span class="af-result gain">{{ portfolioMetrics.return }}</span>
+                      </div>
+                    </div>
+                    <div class="algo-formula">
+                      <div class="af-row">
+                        <div class="af-name">加权最大回撤</div>
+                        <div class="af-formula">Σ(策略i权重 × 策略i最大回撤)</div>
+                      </div>
+                      <div class="af-example" v-if="portfolioStrategies.length">
+                        <template v-for="(s, i) in portfolioStrategies" :key="s.seed">
+                          <span v-if="i > 0"> + </span><span class="af-w">{{ portfolioWeights[s.seed] || 20 }}%</span> × <span class="af-m loss">{{ (s.maxDrawdown || 0).toFixed(2) }}%</span>
+                        </template>
+                        <span class="af-eq"> = </span>
+                        <span class="af-result loss">{{ portfolioMetrics.drawdown }}</span>
+                      </div>
+                    </div>
+                    <div class="algo-formula">
+                      <div class="af-row">
+                        <div class="af-name">加权夏普比率</div>
+                        <div class="af-formula">加权年化收益 ÷ 加权最大回撤</div>
+                      </div>
+                      <div class="af-example">
+                        <span class="af-m">{{ portfolioMetrics.return }}</span>
+                        <span> ÷ </span>
+                        <span class="af-m">{{ portfolioMetrics.drawdown }}</span>
+                        <span class="af-eq"> = </span>
+                        <span class="af-result">{{ portfolioMetrics.sharpe }}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -737,6 +781,12 @@ function setWeight(seed: number, val: number) {
   portfolioGenerated.value = false
 }
 
+async function onGeneratePortfolio() {
+  portfolioGenerated.value = true
+  await nextTick()
+  await loadPortfolioNarrative()
+}
+
 async function loadPortfolioNarrative() {
   if (!portfolioStrategies.value.length || portfolioTotal.value !== 100) return
   portfolioNarrLoading.value = true
@@ -1013,6 +1063,19 @@ onUnmounted(() => {
 .cbw-track { flex: 1; height: 6px; border-radius: 3px; background: rgba(23,55,91,0.1); overflow: hidden; }
 .cbw-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
 .cbw-desc { font-size: 11px; color: var(--muted); white-space: nowrap; }
+
+/* 指标算法说明 */
+.algo-section { margin-top: 16px; padding-top: 16px; border-top: 1px dashed rgba(23,55,91,0.12); }
+.algo-title { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+.algo-formula { margin-bottom: 10px; }
+.af-row { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+.af-name { font-size: 13px; font-weight: 700; color: var(--text); width: 110px; flex-shrink: 0; }
+.af-formula { font-size: 12px; color: var(--muted); font-style: italic; }
+.af-example { font-size: 12px; color: var(--muted); font-family: 'DIN Alternate','Bahnschrift',monospace; padding: 6px 10px; background: rgba(23,55,91,0.04); border-radius: 6px; }
+.af-w { color: var(--text); font-weight: 700; }
+.af-m { color: #6d7c8d; }
+.af-eq { color: var(--gold); font-weight: 700; margin: 0 4px; }
+.af-result { font-weight: 800; }
 
 /* 贡献度对比 */
 .pc-title { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
