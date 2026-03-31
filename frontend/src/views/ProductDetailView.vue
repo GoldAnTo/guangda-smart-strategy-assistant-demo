@@ -175,6 +175,59 @@
     </section>
 
     <!-- ═══════════════════════════════════════════════ -->
+    <!-- AI 归因分析 -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <section class="attr-section card">
+      <div class="section-eyebrow">AI Attribution</div>
+      <h2 class="section-heading">策略归因分析</h2>
+
+      <!-- 周期选择 -->
+      <div class="attr-periods" v-if="strategy && !attrResult && !attrLoading">
+        <div class="ap-hint">选择一个分析周期：</div>
+        <div class="ap-tabs">
+          <button
+            v-for="p in attrPeriods"
+            :key="p.key"
+            class="ap-tab"
+            :class="{ active: attrPeriod === p.key }"
+            @click="attrPeriod = p.key; loadAttr()"
+          >{{ p.label }}</button>
+        </div>
+      </div>
+
+      <!-- 加载状态 -->
+      <div class="attr-loading" v-if="attrLoading">
+        <div class="spinner-ring"></div>
+        <div class="al-text">AI 正在深度分析策略归因...</div>
+      </div>
+
+      <!-- 归因结果 -->
+      <div class="attr-body" v-if="attrResult && !attrLoading">
+        <div class="ab-meta">
+          <span class="ab-strategy">{{ attrResult.strategyName }}</span>
+          <span class="ab-period">{{ attrResult.period }}</span>
+          <span class="ab-return" :class="attrResult.periodReturn >= 0 ? 'gain' : 'loss'">
+            {{ attrResult.periodReturn >= 0 ? '+' : '' }}{{ attrResult.periodReturn?.toFixed(2) }}%
+          </span>
+        </div>
+        <div class="ab-analysis">{{ attrResult.analysis }}</div>
+        <button class="ab-regen" @click="loadAttr">
+          🔄 重新分析
+        </button>
+      </div>
+
+      <!-- 未加载状态 -->
+      <div class="attr-start" v-if="strategy && !attrResult && !attrLoading">
+        <div class="as-icon">🔬</div>
+        <div class="as-title">AI 归因分析</div>
+        <div class="as-sub">点击上方周期按钮，AI 将从市场环境、策略特性、风险收益、配置价值四个维度深度解读本策略的表现驱动因素</div>
+        <button class="as-btn" @click="loadAttr">
+          🚀 启动分析
+        </button>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════ -->
     <!-- 合规风险提示 -->
     <!-- ═══════════════════════════════════════════════ -->
     <div class="risk-disclosure">
@@ -219,6 +272,17 @@ const strategy = ref<StrategyItem | null>(null)
 const loading = ref(false)
 const error = ref('')
 const chartRef = ref<HTMLElement>()
+
+// 归因分析
+const attrPeriod = ref('month')
+const attrResult = ref<any>(null)
+const attrLoading = ref(false)
+const attrPeriods = [
+  { key: 'week', label: '近一周' },
+  { key: 'month', label: '近一月' },
+  { key: 'quarter', label: '近一季' },
+  { key: 'year', label: '近一年' },
+]
 let chartInstance: echarts.ECharts | null = null
 const timeSeries = ref<TimeSeriesPoint[]>([])
 
@@ -455,6 +519,41 @@ function startAIChat() {
   ])
   router.push('/chat')
 }
+
+async function loadAttr() {
+  if (!strategy.value || attrLoading.value) return
+  attrLoading.value = true
+  attrResult.value = null
+  try {
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003'
+    const resp = await fetch(`${base}/api/attribution`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        strategy: {
+          name: strategy.value.name,
+          navCategory: strategy.value.navCategory,
+          annualReturn: strategy.value.annualReturn,
+          winRate: strategy.value.winRate,
+          maxDrawdown: (strategy.value as any).maxDrawdown,
+          volatility: (strategy.value as any).volatilityValue,
+          sharpe: (strategy.value as any).sharpe,
+          riskLevel: (strategy.value as any).riskLevel || 'R3',
+          investmentHorizon: (strategy.value as any).investmentHorizon || 'medium_term',
+          logicSummary: strategy.value.logicSummary,
+          tags: strategy.value.tags || [],
+        },
+        period: attrPeriods.find(p => p.key === attrPeriod.value)?.label || '近一月',
+      }),
+    })
+    const data = await resp.json()
+    attrResult.value = data.data || data
+  } catch {
+    attrResult.value = { analysis: '（归因分析暂时不可用）', strategyName: strategy.value?.name, period: attrPeriods.find(p => p.key === attrPeriod.value)?.label, periodReturn: strategy.value?.annualReturn || 0 }
+  } finally {
+    attrLoading.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -620,4 +719,35 @@ function startAIChat() {
 .rd-text { font-size: 12px; color: var(--muted); line-height: 1.85; }
 .rd-text strong { color: var(--text); font-weight: 600; }
 .rd-meta { font-size: 11px; color: rgba(23,55,91,0.4); padding-top: 4px; border-top: 1px solid rgba(23,55,91,0.06); }
+
+/* ── 归因分析 ── */
+.attr-section { padding: 22px; }
+
+.attr-periods { margin: 12px 0 0; }
+.ap-hint { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+.ap-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.ap-tab { padding: 6px 14px; border-radius: 999px; border: 1px solid rgba(23,55,91,0.15); background: transparent; color: var(--muted); cursor: pointer; font-size: 12px; transition: all 0.2s; }
+.ap-tab:hover { border-color: var(--gold); color: var(--gold); }
+.ap-tab.active { border-color: var(--gold); background: rgba(158,114,46,0.1); color: var(--gold); font-weight: 700; }
+
+.attr-loading { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 40px 0; }
+.spinner-ring { width: 36px; height: 36px; border: 3px solid rgba(158,114,46,0.15); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.al-text { font-size: 13px; color: var(--muted); }
+
+.attr-body { margin-top: 14px; display: flex; flex-direction: column; gap: 12px; }
+.ab-meta { display: flex; align-items: center; gap: 10px; }
+.ab-strategy { font-size: 13px; font-weight: 700; color: var(--text); }
+.ab-period { font-size: 11px; color: var(--muted); padding: 2px 8px; border-radius: 6px; background: rgba(23,55,91,0.06); }
+.ab-return { font-size: 14px; font-weight: 800; font-family: 'DIN Alternate','Bahnschrift',sans-serif; }
+.ab-analysis { font-size: 13px; color: var(--muted); line-height: 1.9; padding: 14px 16px; border-radius: 10px; background: rgba(23,55,91,0.04); white-space: pre-wrap; }
+.ab-regen { align-self: flex-start; padding: 6px 14px; border-radius: 8px; border: 1px solid rgba(23,55,91,0.15); background: transparent; color: var(--muted); cursor: pointer; font-size: 12px; transition: all 0.2s; }
+.ab-regen:hover { border-color: var(--blue); color: var(--blue); }
+
+.attr-start { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 32px 20px; text-align: center; }
+.as-icon { font-size: 42px; }
+.as-title { font-size: 18px; font-weight: 700; color: var(--text); }
+.as-sub { font-size: 13px; color: var(--muted); line-height: 1.7; max-width: 480px; }
+.as-btn { margin-top: 8px; padding: 10px 24px; border-radius: 12px; border: none; background: linear-gradient(135deg,#9e722e,#c24a00); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+.as-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(158,114,46,0.3); }
 </style>

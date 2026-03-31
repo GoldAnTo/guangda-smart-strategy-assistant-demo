@@ -447,6 +447,23 @@
                   </div>
                 </div>
 
+                <!-- AI 组合解读 -->
+                <div class="port-ai-section" v-if="portfolioTotal === 100">
+                  <div class="pai-header">
+                    <span class="pai-icon">🧠</span>
+                    <span class="pai-title">AI 组合配置解读</span>
+                    <button class="pai-btn" @click="loadPortfolioNarrative" :disabled="portfolioNarrLoading">
+                      {{ portfolioNarrLoading ? '生成中...' : portfolioNarrative ? '🔄 重新生成' : '🚀 生成解读' }}
+                    </button>
+                  </div>
+                  <div class="pai-loading" v-if="portfolioNarrLoading">
+                    <span class="spinner-ring-sm"></span> AI 正在生成组合配置解读...
+                  </div>
+                  <div class="pai-body" v-if="portfolioNarrative && !portfolioNarrLoading">
+                    {{ portfolioNarrative }}
+                  </div>
+                </div>
+
               </div>
 
               <!-- 未选择状态 -->
@@ -595,6 +612,45 @@ function setWeight(seed: number, val: number) {
     others.forEach(s => {
       portfolioWeights.value[s.seed] = Math.max(5, Math.min(80, portfolioWeights.value[s.seed] - perOther))
     })
+  }
+}
+
+// 组合AI解读
+const portfolioNarrative = ref('')
+const portfolioNarrLoading = ref(false)
+
+async function loadPortfolioNarrative() {
+  if (!portfolioStrategies.value.length || portfolioTotal.value !== 100) return
+  portfolioNarrLoading.value = true
+  try {
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003'
+    const components = portfolioStrategies.value.map(s => ({
+      name: s.name,
+      navCategory: s.navCategory,
+      annualReturn: s.annualReturn,
+      maxDrawdown: s.maxDrawdown || 0,
+      volatility: (s as any).volatilityValue || 0,
+      sharpe: (s as any).sharpe || 0,
+      riskLevel: (s as any).riskLevel || 'R3',
+      weight: portfolioWeights.value[s.seed] || 20,
+    }))
+    const resp = await fetch(`${base}/api/portfolio-narrative`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        components,
+        portfolioReturn: parseFloat(portfolioMetrics.value.return),
+        portfolioVolatility: 0,
+        portfolioMaxDrawdown: parseFloat(portfolioMetrics.value.drawdown),
+        portfolioSharpe: parseFloat(portfolioMetrics.value.sharpe),
+      }),
+    })
+    const data = await resp.json()
+    portfolioNarrative.value = (data.data || data).narrative || '（暂无法生成解读）'
+  } catch {
+    portfolioNarrative.value = '（AI 组合解读暂时不可用）'
+  } finally {
+    portfolioNarrLoading.value = false
   }
 }
 
@@ -1209,6 +1265,23 @@ onUnmounted(() => {
 .pbe-icon { font-size: 48px; }
 .pbe-title { font-size: 18px; font-weight: 700; color: var(--text); }
 .pbe-sub { font-size: 13px; color: var(--muted); }
+
+/* ── 组合 AI 解读 ── */
+.port-ai-section {
+  margin-top: 16px; padding: 16px;
+  background: rgba(158,114,46,0.05); border-radius: 12px;
+  border: 1px solid rgba(158,114,46,0.15);
+}
+.pai-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.pai-icon { font-size: 18px; }
+.pai-title { font-size: 13px; font-weight: 700; color: var(--text); flex: 1; }
+.pai-btn { padding: 5px 14px; border-radius: 8px; border: 1px solid rgba(23,55,91,0.15); background: rgba(255,255,255,0.7); color: var(--muted); cursor: pointer; font-size: 12px; transition: all 0.2s; }
+.pai-btn:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
+.pai-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.pai-loading { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); padding: 8px 0; }
+.spinner-ring-sm { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(158,114,46,0.2); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.pai-body { font-size: 13px; color: var(--muted); line-height: 1.9; white-space: pre-wrap; padding: 12px 14px; background: rgba(255,255,255,0.7); border-radius: 8px; }
 
 @media (max-width: 900px) {
   .portfolio-builder { grid-template-columns: 1fr; }

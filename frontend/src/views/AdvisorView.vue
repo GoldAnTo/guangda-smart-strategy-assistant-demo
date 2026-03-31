@@ -527,6 +527,12 @@ async function handleAnalyze() {
     // Auto-load narrative for top strategies
     if (result.value?.recommendations?.length && !result.value.shouldEscalate) {
       await regenerateNarrative()
+      // Auto-load attribution for the top primary strategy
+      const primary = primaryRecs.value[0]
+      if (primary) {
+        attributionStrategyId.value = primary.strategy.id
+        await loadAttribution()
+      }
     }
   } catch (e) {
     console.error('analyze error:', e)
