@@ -827,6 +827,11 @@ async function loadStrategies() {
 watch(activeMode, async (mode) => {
   if (mode === 'map') {
     await nextTick()
+    await new Promise(r => requestAnimationFrame(() => r()))
+    if (!mapChartInstance.value) {
+      mapChartInstance.value = echarts.init(mapChartRef.value)
+    }
+    mapChartInstance.value.resize()
     renderMap()
   }
 })
@@ -838,12 +843,14 @@ onMounted(async () => {
     mapChartInstance.value = echarts.init(mapChartRef.value)
     renderMap()
   }
-  window.addEventListener('resize', () => mapChartInstance.value?.resize())
+  window.addEventListener('resize', onResizeChart)
 })
+
+function onResizeChart() { mapChartInstance.value?.resize() }
 
 onUnmounted(() => {
   mapChartInstance.value?.dispose()
-  window.removeEventListener('resize', () => mapChartInstance.value?.resize())
+  window.removeEventListener('resize', onResizeChart)
 })
 </script>
 
