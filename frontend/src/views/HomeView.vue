@@ -319,7 +319,7 @@ onMounted(loadStrategies)
 </script>
 
 <style scoped>
-.home-page { display: flex; flex-direction: column; gap: 0; height: 100%; overflow: hidden; box-sizing: border-box; }
+.home-page { display: flex; flex-direction: column; gap: 0; min-height: calc(100vh - 88px); box-sizing: border-box; }
 
 /* 顶部 */
 .home-header { display: flex; justify-content: space-between; align-items: flex-end; padding: 20px 16px 16px; gap: 24px; flex-wrap: wrap; border-bottom: 1px solid rgba(23,55,91,0.08); }
@@ -366,10 +366,7 @@ onMounted(loadStrategies)
 .risk-desc { font-size: 12px; color: var(--muted); }
 
 /* 搜索+排序+筛选 */
-.controls-bar {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 16px 0 0; gap: 12px; flex-wrap: wrap;
-}
+.controls-bar { display: flex; justify-content: space-between; align-items: center; padding: 16px 0 0; gap: 12px; flex-wrap: wrap; }
 .search-wrap { position: relative; flex: 1; max-width: 400px; }
 .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: var(--muted); }
 .search-input { width: 100%; padding: 9px 40px 9px 40px; border-radius: 10px; border: 1px solid rgba(23,55,91,0.15); background: rgba(255,255,255,0.8); color: var(--text); font-size: 13px; outline: none; box-sizing: border-box; }
@@ -406,15 +403,7 @@ onMounted(loadStrategies)
 .cat-group-avg strong { font-weight: 700; margin-left: 4px; }
 
 /* 策略网格 */
-.cat-strategy-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
-  overflow-y: auto;
-  flex: 1;
-  min-height: 0;
-  padding: 0 4px;
-}
+.cat-strategy-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
 
 /* 策略卡片 */
 .strategy-card { padding: 18px; display: flex; flex-direction: column; gap: 8px; cursor: pointer; transition: all 0.25s ease; position: relative; }
@@ -472,7 +461,7 @@ onMounted(loadStrategies)
 .card-action { font-size: 13px; color: var(--gold); font-weight: 600; }
 
 /* 加载骨架 */
-.loading-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; overflow-y: auto; flex: 1; min-height: 0; padding: 0 4px; }
+.loading-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; padding: 16px 16px; }
 .skeleton-card { height: 220px; border-radius: 20px; background: rgba(23,55,91,0.06); animation: shimmer 1.5s infinite; }
 @keyframes shimmer { 0%,100% { opacity: 0.5 } 50% { opacity: 1 } }
 

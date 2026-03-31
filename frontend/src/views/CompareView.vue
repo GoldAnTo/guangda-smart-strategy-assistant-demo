@@ -990,7 +990,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.compare-page { display: flex; flex-direction: column; gap: 20px; height: 100%; overflow-y: auto; }
+.compare-page { display: flex; flex-direction: column; gap: 20px; padding-bottom: 48px; }
 
 /* 全局颜色 */
 .gain { color: #c24a00 !important; }

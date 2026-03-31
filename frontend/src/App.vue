@@ -225,10 +225,8 @@ button {
 
 .view-wrap {
   position: relative;
-  /* 固定高度 = 视口高度 - 顶栏高度，禁止全局滚动 */
-  height: calc(100vh - 72px);
-  margin-top: 72px;
-  overflow: hidden;
+  padding: 88px 24px 40px;
+  min-height: 100vh;
   box-sizing: border-box;
 }
 
@@ -282,9 +280,7 @@ button {
   }
 
   .view-wrap {
-    margin-top: 0;
-    height: 100vh;
-    padding: 80px 16px 16px;
+    padding: 88px 16px 40px;
   }
 }
 </style>

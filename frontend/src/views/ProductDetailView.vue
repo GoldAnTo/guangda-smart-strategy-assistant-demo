@@ -557,7 +557,7 @@ async function loadAttr() {
 </script>
 
 <style scoped>
-.detail-page { display: flex; flex-direction: column; gap: 20px; height: 100%; overflow-y: auto; }
+.detail-page { display: flex; flex-direction: column; gap: 20px; min-height: calc(100vh - 88px); box-sizing: border-box; }
 
 /* 卡片基础 */
 .card {

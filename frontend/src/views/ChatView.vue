@@ -292,8 +292,6 @@ function handleGenerateReference() {
   display: flex;
   flex-direction: column;
   gap: 22px;
-  height: 100%;
-  overflow-y: auto;
 }
 
 .chat-ai-band {
