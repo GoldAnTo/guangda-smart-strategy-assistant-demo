@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { recommendService, type CustomerProfile } from '../services/recommend-service'
+import { aiService } from '../services/ai-service'
 import { successResponse, errorResponse } from '../utils/response'
 
 function fmt(v: number | null | undefined, decimals = 2): string {
@@ -28,10 +29,11 @@ router.post('/api/recommend', (req, res) => {
 })
 
 // POST /api/recommend-narrative — 规则引擎生成结构化专业Narrative
-router.post('/api/recommend-narrative', (req, res) => {
+// POST /api/recommend-narrative — AI 生成结构化专业分析Narrative
+router.post('/api/recommend-narrative', async (req, res) => {
   const requestId = res.locals.requestId
   try {
-    const { strategies } = req.body as { strategies: any[]; profile?: any }
+    const { strategies, profile } = req.body as { strategies: any[]; profile?: any }
     if (!strategies || strategies.length === 0) {
       return res.status(400).json(errorResponse('strategies数组不能为空', requestId))
     }
@@ -47,125 +49,56 @@ router.post('/api/recommend-narrative', (req, res) => {
       medium_term: '中期（半年至两年）',
       long_term: '长期（两年以上）'
     }
+    const fmtPct = (v: number | null | undefined) =>
+      v == null ? '—' : `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`
+    const safeStr = (v: any) => v != null ? String(v) : ''
+    const safeList = (arr: any) => Array.isArray(arr) ? arr.filter(Boolean).map(String) : []
 
-    function fmtPct(v: number | null | undefined): string {
-      if (v == null) return '—'
-      return (v >= 0 ? '+' : '') + v.toFixed(2) + '%'
-    }
-    function safeGet(obj: any, key: string, fallback = ''): string {
-      return obj != null && obj[key] != null ? String(obj[key]) : fallback
-    }
-    function safeList(arr: any): string[] {
-      return Array.isArray(arr) ? arr.filter(Boolean).map(String) : []
-    }
+    // 构建 AI prompt
+    const prompt = `
+你是光大资管的AI投资顾问。请根据以下策略数据，为客户生成一段专业的策略推荐解读。
 
-    const topRisk = riskLevelMap[top.riskLevel] || top.riskLevel || '中等风险'
-    const topHorizon = horizonMap[top.investmentHorizon] || top.investmentHorizon || '中期'
-    const topLiquidity = safeGet(top, 'liquidityDisplay', '中等流动性')
-    const topReturn = fmtPct(top.annualReturn)
-    const topSharpe = top.sharpe != null ? top.sharpe.toFixed(2) : '—'
-    const topMaxDD = top.maxDrawdown != null ? top.maxDrawdown.toFixed(2) + '%' : '—'
-    const topMatchReasons = safeList(top.matchReasons).slice(0, 3)
-    const topSuitable = safeList(top.suitableFor)
-    const topNotSuitable = safeList(top.notSuitableFor)
-    const topTags = safeList(top.tags).slice(0, 4).join('、')
-    const topPositioning = safeGet(top, 'positioning', '').replace(/\n/g, '，').trim()
-    const topOwner = safeGet(top, 'owner', '')
-    const topNavCat = safeGet(top, 'navCategory', '')
+【首选策略】
+- 名称：${safeStr(top.name)}
+- 分类：${safeStr(top.navCategory)}
+- 管理者：${safeStr(top.owner) || '光大资管'}
+- 风险等级：${riskLevelMap[top.riskLevel] || safeStr(top.riskLevel) || '中等风险'}
+- 投资期限：${horizonMap[top.investmentHorizon] || safeStr(top.investmentHorizon) || '中期'}
+- 年化收益率：${fmtPct(top.annualReturn)}
+- 胜率：${fmtPct(top.winRate)}
+- 最大回撤：${fmtPct(top.maxDrawdown)}
+- 夏普比率：${top.sharpe != null ? top.sharpe.toFixed(2) : '—'}
+- 波动率：${fmtPct(top.volatility)}
+- 基准：${safeStr(top.benchmarkName)}
+- 策略逻辑：${safeStr(top.logicSummary) || '暂无说明'}
+- 标签：${safeList(top.tags).slice(0, 5).join('、')}
+- 匹配原因：${safeList(top.matchReasons).slice(0, 3).join('；') || '暂无'}
+- 适合人群：${safeList(top.suitableFor).slice(0, 3).join('、') || '未标注'}
+- 不适合人群：${safeList(top.notSuitableFor).slice(0, 2).join('、') || '未标注'}
 
-    const annR = top.annualReturn ?? 0
-    const maxDD = top.maxDrawdown ?? 0
+${rest.length > 0 ? `【备选策略】\n${rest.map((s: any, i: number) =>
+      `${i + 2}. ${safeStr(s.name)}（${fmtPct(s.annualReturn)}，${riskLevelMap[s.riskLevel] || safeStr(s.riskLevel) || '中等风险'}，回撤${fmtPct(s.maxDrawdown)}）`
+    ).join('\n')}` : '【备选策略】暂无'}
 
-    // 收益质量评价
-    let returnQuality: string
-    if (annR >= 20) returnQuality = '收益极具吸引力，年化收益在同类策略中处于领先水平'
-    else if (annR >= 10) returnQuality = '收益表现稳健，处于同类策略中上水平'
-    else if (annR >= 0) returnQuality = '收益相对平稳，但需关注收益持续性'
-    else returnQuality = '当前收益为负，建议关注市场环境和策略周期'
+请生成一段专业的推荐解读，包含：
+1. 首选策略的核心推荐理由（收益/风险/适配性）
+2. 与备选策略的主要差异和取舍
+3. 明确的风险提示（历史收益不代表未来）
+4. 适配人群和不适合人群
 
-    // 回撤质量评价
-    let riskQuality: string
-    if (maxDD <= 5) riskQuality = '回撤控制极为出色，适合风险厌恶型客户'
-    else if (maxDD <= 10) riskQuality = '回撤控制在合理区间，符合中等风险定位'
-    else if (maxDD <= 20) riskQuality = '回撤相对较大，需在充分了解风险后配置'
-    else riskQuality = '最大回撤较高，建议风险承受能力强的客户关注'
+要求：语言专业但通俗，分段清晰，每段2-3句话。不要过度营销，不要承诺收益。整体300字以内。
+`.trim()
 
-    // 夏普质量评价
-    let sharpeQuality: string
-    const shNum = top.sharpe != null ? parseFloat(top.sharpe.toFixed(2)) : null
-    if (shNum !== null && shNum >= 2.0) sharpeQuality = '夏普比率超过2.0，风险调整后收益极为优秀'
-    else if (shNum !== null && shNum >= 1.5) sharpeQuality = '夏普比率超过1.5，风险收益特征优异'
-    else if (shNum !== null && shNum >= 1.0) sharpeQuality = '夏普比率超过1.0，优于市场平均水平'
-    else if (shNum !== null) sharpeQuality = '夏普比率偏低，反映风险收益效率有提升空间'
-    else sharpeQuality = '夏普比率暂无数据，建议参考其他风险指标综合评估'
-
-    // 匹配逻辑段落
-    let matchPara = ''
-    if (topMatchReasons.length > 0) {
-      matchPara = '在匹配度方面，本策略的核心优势是：' + topMatchReasons.join('；') + '，与您的需求高度吻合。'
-    }
-    let posPara = ''
-    if (topPositioning) {
-      posPara = '从策略定位来看，' + topPositioning.substring(0, 60) + '。'
-    }
-
-    // 对比段落
-    let comparePara = ''
-    if (rest.length > 0) {
-      const restParts = rest.map((s, i) => {
-        const sRet = fmtPct(s.annualReturn)
-        const sRisk = riskLevelMap[s.riskLevel] || s.riskLevel || '中等风险'
-        const sMaxDD = s.maxDrawdown ?? 0
-        const sHorizon = horizonMap[s.investmentHorizon] || s.investmentHorizon || '中期'
-        const sLiquidity = safeGet(s, 'liquidityDisplay', '中等流动性')
-        const diff = (s.annualReturn ?? 0) - annR
-        let retDiff: string
-        if (diff > 1) retDiff = '年化收益高于本策略' + Math.abs(diff).toFixed(1) + '个百分点，进攻性更强'
-        else if (diff < -1) retDiff = '年化收益低于本策略' + Math.abs(diff).toFixed(1) + '个百分点，更注重防守'
-        else retDiff = '年化收益与本策略基本持平'
-        let ddDiff: string
-        if (sMaxDD < maxDD - 2) ddDiff = '最大回撤也更小，整体风险更可控'
-        else if (sMaxDD > maxDD + 2) ddDiff = '但最大回撤高出' + (sMaxDD - maxDD).toFixed(1) + '个百分点'
-        else ddDiff = '回撤水平与本策略相近'
-        const horizonDiff = s.investmentHorizon !== top.investmentHorizon
-          ? '；资金期限' + sHorizon + '，' + sLiquidity : ''
-        return (i + 2) + '. ' + s.name + '（' + sRet + '，' + sRisk + '）' + retDiff + '，' + ddDiff + horizonDiff
-      })
-      comparePara = '从备选方案来看：' + restParts.join('；') + '。综合来看，本策略在风险收益效率上具备明显优势，值得优先关注。'
-    } else {
-      comparePara = '当前仅有首选策略，未发现更优备选方案。'
-    }
-
-    // 适配人群段落
-    const suitableText = topSuitable.length > 0
-      ? topSuitable.slice(0, 3).join('、')
-      : topRisk + '风险偏好，资金可用期限' + topHorizon + '的客户'
-    const notSuitableText = topNotSuitable.length > 0
-      ? '不适合人群：' + topNotSuitable.slice(0, 2).join('、') + '的客户不建议配置本策略。'
-      : ''
-
-    // 组装最终narrative
-    const n1 = top.name + '（' + topNavCat + '）是本次推荐中的首选方案。' + returnQuality + '。' + riskQuality + '。' + sharpeQuality + '。'
-    const n2 = (matchPara + ' ' + posPara).trim()
-    const n3 = comparePara
-    const n4 = '本策略最大历史回撤为' + topMaxDD + '，意味着在最不利情况下持有体验会有较大波动，请做好相应心理准备。历史收益不代表未来表现，策略可能因市场环境变化而出现与历史业绩差异较大的情况。'
-    const n5 = notSuitableText ? notSuitableText + ' ' : ''
-    const n6 = '适合人群：' + suitableText + '。建议投资期限不低于' + topHorizon + '，以平滑市场短期波动带来的影响。'
-    const n7 = '管理者：' + (topOwner || '光大资管') + ' | 策略标签：' + (topTags || '量化，多资产') + ' | 投资有风险，决策前请详阅产品说明书。'
-
-    const narrative =
-      '【核心推荐逻辑】\n\n' + n1 + '\n' + (n2 ? n2 + '\n\n' : '\n\n') +
-      '【与备选策略对比】\n\n' + n3 + '\n\n' +
-      '【风险提示与适配人群】\n\n' +
-      '风险提示：' + n4 + '\n' +
-      (n5 ? n5 + '\n' : '') +
-      n6 + '\n\n' +
-      n7
+    const narrative = await aiService.generateText(prompt)
 
     return res.json(successResponse({ narrative }, requestId))
+
   } catch (err: any) {
     console.error(`[${requestId}] recommend-narrative error:`, err)
-    return res.status(500).json(errorResponse('Narrative生成失败', requestId))
+    if (err.message.includes('MODEL_API_URL or MODEL_API_KEY is missing')) {
+      return res.status(503).json(errorResponse('AI 服务未配置，请联系管理员', requestId))
+    }
+    return res.status(500).json(errorResponse('Narrative 生成失败：' + err.message, requestId))
   }
 })
 

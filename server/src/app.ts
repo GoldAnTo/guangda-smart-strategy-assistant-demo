@@ -10,6 +10,7 @@ import portfolioRoute from './routes/portfolio'
 import productsRoute from './routes/products'
 import strategiesRoute from './routes/strategies'
 import recommendRoute from './routes/recommend'
+import attributionRoute from './routes/attribution'
 import { errorResponse, successResponse, createRequestId } from './utils/response'
 
 dotenv.config()
@@ -53,6 +54,7 @@ app.use(productsRoute)
 app.use(strategiesRoute)
 app.use(portfolioRoute)
 app.use(recommendRoute)
+app.use(attributionRoute)
 
 const port = Number(process.env.PORT || 3001)
 

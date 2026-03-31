@@ -227,6 +227,53 @@
             </div>
           </div>
 
+          <!-- AI 归因分析 -->
+          <div class="attribution-card card" v-if="hasSearched && !result?.shouldEscalate && primaryRecs.length">
+            <div class="nc-head">
+              <span class="nc-icon">🔬</span>
+              <span class="nc-title">AI 策略归因分析</span>
+              <button class="nc-refresh" @click="loadAttribution" :disabled="attributionLoading">
+                {{ attributionLoading ? '分析中...' : attributionResult ? '🔄 重新分析' : '🚀 生成分析' }}
+              </button>
+            </div>
+
+            <!-- 策略选择 -->
+            <div class="attr-strategy-pick" v-if="!attributionResult">
+              <div class="asp-hint">选择要分析的首选策略：</div>
+              <div class="asp-options">
+                <button
+                  v-for="item in primaryRecs.slice(0, 3)"
+                  :key="item.strategy.id"
+                  class="asp-opt"
+                  :class="{ active: attributionStrategyId === item.strategy.id }"
+                  @click="attributionStrategyId = item.strategy.id; loadAttribution()"
+                >
+                  {{ item.strategy.name }}
+                </button>
+              </div>
+            </div>
+
+            <!-- 归因结果 -->
+            <div class="attr-result" v-if="attributionResult">
+              <div class="attr-meta">
+                <span class="attr-strategy-name">{{ attributionResult.strategyName }}</span>
+                <span class="attr-period">{{ attributionResult.period }}</span>
+                <span class="attr-return" :class="attributionResult.periodReturn >= 0 ? 'gain' : 'loss'">
+                  {{ attributionResult.periodReturn >= 0 ? '+' : '' }}{{ attributionResult.periodReturn.toFixed(2) }}%
+                </span>
+              </div>
+              <div class="attr-analysis">{{ attributionResult.analysis }}</div>
+            </div>
+
+            <div class="nc-loading" v-else-if="attributionLoading">
+              <span class="spinner-sm"></span> AI 正在深度分析策略归因...
+            </div>
+
+            <div class="attr-empty" v-else>
+              <div class="ae-hint">点击上方按钮，AI 将深度分析策略的收益来源与风险驱动因素</div>
+            </div>
+          </div>
+
           <!-- 分层推荐列表 -->
           <div class="rec-sections">
             <!-- 首选推荐 -->
@@ -421,6 +468,11 @@ const result = ref<any>(null)
 const narrative = ref('')
 const narrativeLoading = ref(false)
 
+// 归因分析状态
+const attributionStrategyId = ref<number | null>(null)
+const attributionResult = ref<any>(null)
+const attributionLoading = ref(false)
+
 // AI steps
 const aiSteps = ref([
   { icon: '🔍', text: '理解客户需求', done: false, active: false },
@@ -506,6 +558,28 @@ async function regenerateNarrative() {
 
 function goDetail(id: string) {
   router.push(`/product/${id}`)
+}
+
+async function loadAttribution() {
+  if (!attributionStrategyId.value || attributionLoading.value) return
+  attributionLoading.value = true
+  attributionResult.value = null
+  try {
+    const item = primaryRecs.value.find((r: any) => r.strategy.id === attributionStrategyId.value)
+    if (!item) return
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003'
+    const resp = await fetch(`${base}/api/attribution`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ strategy: item.strategy }),
+    })
+    const data = await resp.json()
+    attributionResult.value = data.data || data
+  } catch {
+    attributionResult.value = { analysis: '（归因分析暂时不可用）', strategyName: '', period: '近一月', periodReturn: 0 }
+  } finally {
+    attributionLoading.value = false
+  }
 }
 
 onMounted(async () => {
@@ -744,4 +818,34 @@ onMounted(async () => {
   .ah-right { align-self: flex-start; }
   .advisor-header h1 { font-size: 26px; }
 }
+
+/* ── AI 归因分析 ── */
+.attribution-card {
+  padding: 20px;
+}
+.attr-strategy-pick { margin: 12px 0 0; }
+.asp-hint { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+.asp-options { display: flex; flex-wrap: wrap; gap: 6px; }
+.asp-opt {
+  padding: 6px 14px; border-radius: 999px;
+  border: 1px solid rgba(23,55,91,0.15);
+  background: transparent; color: var(--muted);
+  cursor: pointer; font-size: 12px; transition: all 0.2s;
+}
+.asp-opt:hover { border-color: var(--gold); color: var(--text); }
+.asp-opt.active { border-color: var(--gold); background: rgba(158,114,46,0.1); color: var(--gold); font-weight: 600; }
+
+.attr-result { margin-top: 14px; }
+.attr-meta { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.attr-strategy-name { font-size: 13px; font-weight: 700; color: var(--text); }
+.attr-period { font-size: 11px; color: var(--muted); padding: 2px 8px; border-radius: 6px; background: rgba(23,55,91,0.06); }
+.attr-return { font-size: 14px; font-weight: 800; font-family: 'DIN Alternate','Bahnschrift',sans-serif; }
+.attr-analysis {
+  font-size: 13px; color: var(--muted); line-height: 1.9;
+  padding: 14px 16px; border-radius: 10px;
+  background: rgba(23,55,91,0.04); white-space: pre-wrap;
+}
+
+.attr-empty { margin-top: 14px; }
+.ae-hint { font-size: 12px; color: var(--muted); text-align: center; padding: 12px; line-height: 1.7; }
 </style>
