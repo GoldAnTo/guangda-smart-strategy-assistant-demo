@@ -1010,13 +1010,7 @@ onUnmounted(() => {
 .section-heading { margin: 0 0 18px; font-size: 20px; font-weight: 700; color: var(--text); }
 
 /* 顶部 */
-.compare-header {
-  display: flex; justify-content: space-between; align-items: flex-end;
-  padding: 20px 0 16px; gap: 20px; flex-wrap: wrap;
-  border-bottom: 1px solid rgba(23,55,91,0.08);
-  position: sticky; top: 0; z-index: 10;
-  background: rgba(248,242,233,0.95); backdrop-filter: blur(12px);
-}
+.compare-header { display: flex; justify-content: space-between; align-items: flex-end; padding: 20px 0 0; gap: 20px; flex-wrap: wrap; border-bottom: 1px solid rgba(23,55,91,0.08); padding-bottom: 16px; }
 .header-left .eyebrow { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); margin-bottom: 8px; }
 .header-left h1 { margin: 8px 0 6px; font-size: 34px; }
 .header-left .page-lead { margin: 0; color: var(--muted); font-size: 14px; }

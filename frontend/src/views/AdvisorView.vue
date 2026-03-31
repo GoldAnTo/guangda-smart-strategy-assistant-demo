@@ -609,8 +609,6 @@ onMounted(async () => {
   align-items: flex-start;
   justify-content: space-between;
   padding: 16px 0 0;
-  position: sticky; top: 0; z-index: 10;
-  background: rgba(248,242,233,0.95); backdrop-filter: blur(12px);
 }
 .ah-left { display: flex; flex-direction: column; gap: 6px; }
 .advisor-header h1 { margin: 8px 0 0; font-size: 34px; }
