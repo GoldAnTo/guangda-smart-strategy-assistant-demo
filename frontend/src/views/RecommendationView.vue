@@ -2,6 +2,98 @@
   <div class="page-shell rec-page">
 
     <!-- ═══════════════════════════════════════════════ -->
+    <!-- AI 推荐区域（当从偏好分析页跳转时有内容） -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <section class="ai-rec-section card" v-if="hasProfile">
+
+      <div class="ai-rec-header">
+        <div class="section-eyebrow">AI Portfolio recommendation</div>
+        <div class="ai-rec-actions">
+          <button v-if="!recLoading && !recResult?.recommended?.length" class="ai-rec-btn" @click="loadAIRecommendations" :disabled="recLoading">
+            🚀 基于您的偏好生成推荐
+          </button>
+          <button v-if="recResult?.recommended?.length" class="ai-rec-btn refresh" @click="loadAIRecommendations" :disabled="recLoading">
+            {{ recLoading ? '分析中...' : '🔄 重新生成' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- 加载中 -->
+      <div class="rec-loading" v-if="recLoading">
+        <span class="spin-ring"></span>
+        <span>AI 正在根据您的偏好匹配最优策略...</span>
+      </div>
+
+      <!-- 推荐结果 -->
+      <div class="rec-result" v-if="!recLoading && recResult">
+
+        <!-- 升级提示 -->
+        <div class="escalation-tip" v-if="recResult.shouldEscalate">
+          <div class="et-icon">⚠️</div>
+          <div class="et-body">
+            <div class="et-title">{{ recResult.escalationReason || '您的需求较特殊' }}</div>
+            <div class="et-action">{{ recResult.nextAction || '建议联系客户经理进一步沟通' }}</div>
+          </div>
+        </div>
+
+        <!-- AI 推荐策略列表 -->
+        <div class="rec-list" v-if="recResult.recommended?.length">
+          <div class="rec-list-title">
+            根据您的偏好，AI 为您匹配了 <strong>{{ recResult.recommended.length }}</strong> 条策略：
+          </div>
+          <div class="rec-items">
+            <div
+              v-for="(item, i) in recResult.recommended"
+              :key="item.id"
+              class="rec-item"
+            >
+              <div class="ri-rank">{{ i + 1 }}</div>
+              <div class="ri-info">
+                <div class="ri-name">{{ item.name }}</div>
+                <div class="ri-cat">{{ item.navCategory }}</div>
+              </div>
+              <div class="ri-match">
+                <div class="ri-matchscore" :style="{ color: matchColor(item.matchScore) }">{{ (item.matchScore * 100).toFixed(0) }}%</div>
+                <div class="ri-matchlab">匹配度</div>
+              </div>
+              <div class="ri-metrics">
+                <span class="rim ret" :class="item.annualReturn >= 0 ? 'gain' : 'loss'">
+                  {{ item.annualReturn >= 0 ? '+' : '' }}{{ item.annualReturn?.toFixed(2) }}%
+                </span>
+              </div>
+              <button
+                class="ri-add"
+                :class="{ added: isSelected(item.id) }"
+                @click="addStrategyById(item)"
+              >
+                {{ isSelected(item.id) ? '✓ 已添加' : '+ 添加' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- AI 解读 -->
+          <div class="rec-explanation" v-if="explanation && !expLoading">
+            <div class="exp-title">AI 推荐解读</div>
+            <div class="exp-body">{{ explanation }}</div>
+          </div>
+          <div class="exp-loading" v-if="expLoading">
+            <span class="spin-ring-sm"></span> AI 生成解读中...
+          </div>
+          <button class="exp-regen" v-if="!expLoading && recResult.recommended.length" @click="loadExplanation">
+            🔄 重新生成解读
+          </button>
+        </div>
+
+      </div>
+
+      <!-- 未加载 -->
+      <div class="rec-idle" v-if="!recLoading && !recResult">
+        <div class="ri-idle-hint">点击上方按钮，基于您输入的投资偏好，AI 将从全量策略库中筛选最适合您的配置方案</div>
+      </div>
+
+    </section>
+
+    <!-- ═══════════════════════════════════════════════ -->
     <!-- 顶部标题 -->
     <!-- ═══════════════════════════════════════════════ -->
     <header class="rec-header">
@@ -268,6 +360,12 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { listStrategies, simulatePortfolio, type StrategyItem, type PortfolioResult } from '../services/strategy'
 import type { Allocation } from '../services/strategy'
+import { matchProducts, generateExplanation } from '../services/recommendation'
+import { useDemandStore } from '../stores/demand'
+import type { RecommendationItem } from '../types/recommendation'
+
+const demandStore = useDemandStore()
+const hasProfile = computed(() => Boolean(demandStore.profile && Object.keys(demandStore.profile).length > 0))
 
 const COLORS = ['#d0680a', '#3a7fbf', '#6abf40', '#c04040', '#8b5cf6', '#d4a017', '#e07020', '#4080c0']
 
@@ -284,6 +382,53 @@ const activeCat = ref('')
 const result = ref<PortfolioResult | null>(null)
 const aiInterpretation = ref('')
 const aiLoading = ref(false)
+
+// AI 推荐状态
+const recResult = ref<any>(null)
+const recLoading = ref(false)
+const explanation = ref('')
+const expLoading = ref(false)
+
+async function loadAIRecommendations() {
+  if (!demandStore.profile) return
+  recLoading.value = true
+  recResult.value = null
+  explanation.value = null
+  try {
+    recResult.value = await matchProducts(demandStore.profile)
+    if (recResult.value?.recommended?.length && !recResult.value.shouldEscalate) {
+      await loadExplanation()
+    }
+  } catch {
+    recResult.value = null
+  } finally {
+    recLoading.value = false
+  }
+}
+
+async function loadExplanation() {
+  if (!recResult.value) return
+  expLoading.value = true
+  explanation.value = ''
+  try {
+    const result = await generateExplanation({
+      profile: demandStore.profile,
+      recommended: recResult.value.recommended,
+      excluded: recResult.value.excluded || [],
+    })
+    explanation.value = result?.explanation || ''
+  } catch {
+    explanation.value = ''
+  } finally {
+    expLoading.value = false
+  }
+}
+
+function matchColor(score: number) {
+  if (score >= 0.85) return '#4ade80'
+  if (score >= 0.7) return '#f59e0b'
+  return '#f87171'
+}
 
 const categories = computed(() => {
   const map: Record<string, number> = {}
@@ -346,6 +491,29 @@ function addStrategy(s: StrategyItem) {
     }
   })
   selected.value = updated
+}
+
+// 从 AI 推荐结果添加策略（RecommendationItem → StrategyItem）
+function addStrategyById(item: any) {
+  const asStrategy: StrategyItem = {
+    seed: item.id,
+    name: item.name,
+    navCategory: item.navCategory,
+    category: item.navCategory,
+    tags: [],
+    annualReturn: item.annualReturn ?? 0,
+    winRate: item.winRate ?? 0,
+    outlookStars: 3,
+    structure: '',
+    owner: '',
+    logicSummary: '',
+    benchmarkName: '',
+    positioning: '',
+    maxDrawdown: item.maxDrawdown,
+    volatilityValue: item.volatilityValue,
+    sharpe: item.sharpe,
+  }
+  addStrategy(asStrategy)
 }
 
 function removeStrategy(seed: number) {
@@ -462,6 +630,10 @@ async function generateAIInterpretation() {
 
 onMounted(async () => {
   allStrategies.value = await listStrategies()
+  // 有 profile 时自动加载 AI 推荐
+  if (hasProfile.value) {
+    await loadAIRecommendations()
+  }
 })
 </script>
 
@@ -621,4 +793,65 @@ onMounted(async () => {
   .slider-label { width: 120px; }
   .portfolio-kpis { grid-template-columns: 1fr 1fr; }
 }
+
+/* ── AI 推荐区域 ── */
+.ai-rec-section { padding: 20px; }
+.ai-rec-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; gap: 16px; }
+.ai-rec-actions { flex-shrink: 0; }
+.ai-rec-btn {
+  padding: 10px 22px; border-radius: 12px; border: none;
+  background: linear-gradient(135deg,#9e722e,#c24a00); color: #fff;
+  font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+  box-shadow: 0 4px 14px rgba(158,114,46,0.25);
+}
+.ai-rec-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(158,114,46,0.35); }
+.ai-rec-btn.refresh { background: rgba(23,55,91,0.08); color: var(--blue); box-shadow: none; border: 1px solid rgba(23,55,91,0.15); }
+.ai-rec-btn.refresh:hover:not(:disabled) { border-color: var(--blue); background: rgba(23,55,91,0.12); }
+.ai-rec-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.rec-loading { display: flex; align-items: center; gap: 12px; padding: 20px 0; font-size: 14px; color: var(--muted); }
+.spin-ring { display: inline-block; width: 22px; height: 22px; border: 2px solid rgba(158,114,46,0.2); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.9s linear infinite; }
+.spin-ring-sm { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(158,114,46,0.2); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* 升级提示 */
+.escalation-tip { display: flex; gap: 12px; padding: 16px; border-radius: 12px; background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.2); margin-bottom: 16px; }
+.et-icon { font-size: 20px; flex-shrink: 0; }
+.et-body { flex: 1; }
+.et-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.et-action { font-size: 13px; color: var(--muted); }
+
+/* 推荐列表 */
+.rec-list-title { font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+.rec-list-title strong { color: var(--text); }
+.rec-items { display: flex; flex-direction: column; gap: 8px; }
+.rec-item {
+  display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+  border-radius: 12px; background: rgba(23,55,91,0.04);
+  border: 1.5px solid rgba(23,55,91,0.08); transition: all 0.2s;
+}
+.rec-item:hover { border-color: rgba(158,114,46,0.3); background: rgba(158,114,46,0.04); }
+.ri-rank { width: 26px; height: 26px; border-radius: 50%; background: rgba(158,114,46,0.1); border: 1px solid rgba(158,114,46,0.2); color: var(--gold); font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.ri-info { flex: 1; min-width: 0; }
+.ri-name { font-size: 14px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ri-cat { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.ri-match { text-align: center; flex-shrink: 0; }
+.ri-matchscore { font-size: 18px; font-weight: 900; font-family: 'DIN Alternate','Bahnschrift',sans-serif; }
+.ri-matchlab { font-size: 10px; color: var(--muted); text-transform: uppercase; }
+.ri-metrics { flex-shrink: 0; }
+.rim { font-size: 15px; font-weight: 700; font-family: 'DIN Alternate','Bahnschrift',sans-serif; }
+.ri-add { padding: 5px 12px; border-radius: 8px; border: 1px solid rgba(23,55,91,0.15); background: rgba(255,255,255,0.7); color: var(--text); cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s; flex-shrink: 0; }
+.ri-add:hover { border-color: var(--gold); color: var(--gold); }
+.ri-add.added { border-color: #4ade80; background: rgba(74,222,128,0.1); color: #4ade80; }
+
+/* AI 解读 */
+.rec-explanation { margin-top: 16px; padding: 16px; border-radius: 12px; background: rgba(23,55,91,0.04); border: 1px solid rgba(23,55,91,0.08); }
+.exp-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gold); margin-bottom: 8px; }
+.exp-body { font-size: 13px; color: var(--muted); line-height: 1.9; }
+.exp-loading { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); margin-top: 12px; }
+.exp-regen { margin-top: 10px; padding: 6px 14px; border-radius: 8px; border: 1px solid rgba(23,55,91,0.12); background: transparent; color: var(--muted); cursor: pointer; font-size: 12px; transition: all 0.2s; }
+.exp-regen:hover { border-color: var(--blue); color: var(--blue); }
+
+.rec-idle { padding: 12px 0; }
+.ri-idle-hint { font-size: 13px; color: var(--muted); text-align: center; line-height: 1.7; }
 </style>

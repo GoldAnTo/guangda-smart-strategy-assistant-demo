@@ -35,10 +35,20 @@ export interface ScoreBreakdown {
 }
 
 export interface RecommendationItem {
-  productId: string
-  productName: string
+  // 后端 match.ts 返回的实际结构：recommended 数组里直接是策略对象
+  id: number
+  name: string
+  navCategory: string
+  annualReturn: number
+  winRate: number
+  maxDrawdown: number
+  volatilityValue: number
+  sharpe: number
+  riskLevel: string
+  investmentHorizon: string
+  liquidityDisplay: string
+  returnExpectation: string
   matchScore: number
-  scoreBreakdown?: ScoreBreakdown
   priority: 'primary' | 'backup'
   matchReasons: string[]
   benchmark?: BenchmarkInfo | null
