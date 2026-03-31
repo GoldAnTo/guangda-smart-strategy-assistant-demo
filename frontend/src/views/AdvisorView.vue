@@ -624,18 +624,12 @@ onMounted(async () => {
   grid-template-columns: 340px 1fr;
   gap: 20px;
   align-items: start;
-  max-height: calc(100vh - 140px);
-  overflow: hidden;
 }
 .profile-panel {
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  max-height: calc(100vh - 140px);
+  /* 自然内容高度，不裁断 */
 }
 .result-panel {
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  max-height: calc(100vh - 140px);
+  /* 自然内容高度，不裁断 */
 }
 
 /* AI Steps */
