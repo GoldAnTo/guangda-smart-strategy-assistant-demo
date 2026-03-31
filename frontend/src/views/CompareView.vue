@@ -26,6 +26,7 @@
     <div class="compare-layout">
 
       <!-- ═══ 左侧：客户画像筛选面板 ═══ -->
+      <div class="selector-wrap">
       <aside class="selector-panel card">
         <div class="panel-head">
           <div class="section-eyebrow">Client profile</div>
@@ -114,6 +115,7 @@
           </div>
         </div>
       </aside>
+      </div>
 
       <!-- ═══ 右侧：结果区域 ═══ -->
       <div class="result-area">
@@ -884,8 +886,13 @@ onUnmounted(() => {
 /* 布局 */
 .compare-layout { display: grid; grid-template-columns: 300px 1fr; gap: 20px; align-items: start; }
 
+/* 左侧面板容器 - 固定高度，可滚动 */
+.selector-wrap { position: sticky; top: 80px; height: calc(100vh - 100px); overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; }
+.selector-wrap::-webkit-scrollbar { width: 4px; }
+.selector-wrap::-webkit-scrollbar-thumb { background: rgba(23,55,91,0.12); border-radius: 2px; }
+
 /* 左侧面板 */
-.selector-panel { position: sticky; top: 80px; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+.selector-panel { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
 .panel-head { display: flex; justify-content: space-between; align-items: center; }
 .panel-count { font-size: 12px; color: var(--muted); }
 .filter-group { display: flex; flex-direction: column; gap: 8px; }
@@ -1114,7 +1121,7 @@ onUnmounted(() => {
 
 @media (max-width: 1100px) {
   .compare-layout { grid-template-columns: 1fr; }
-  .selector-panel { position: static; max-height: none; }
+  .selector-wrap { position: static; height: auto; overflow: visible; }
   .diag-triad { grid-template-columns: 1fr; }
 }
 @media (max-width: 900px) {
