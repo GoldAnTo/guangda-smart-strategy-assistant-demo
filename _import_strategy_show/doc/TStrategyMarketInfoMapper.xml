@@ -1,0 +1,536 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.research.mapper.TStrategyMarketInfoMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.research.entity.TStrategyMarketInfo">
+        <id column="SK_STRATEGY" property="skStrategy" />
+        <result column="STRATEGY_NAME" property="strategyName" />
+        <result column="FIRST_CATEGORY" property="firstCategory" />
+        <result column="SECOND_CATEGORY" property="secondCategory" />
+        <result column="STRATEGY_STRUCTURE" property="strategyStructure" />
+        <result column="STRATEGY_EXPECT" property="strategyExpect" />
+        <result column="MANAGER_USER" property="managerUser" />
+        <result column="START_DATE" property="startDate" />
+        <result column="STRATEGY_LOGIC" property="strategyLogic" />
+        <result column="FALLBACK_CONTROL" property="fallbackControl" />
+        <result column="SUIT_MARKET" property="suitMarket" />
+        <result column="SK_FILE" property="skFile" />
+        <result column="SK_DATE" property="skDate" />
+        <result column="STRATEGY_LABEL" property="strategyLabel" />
+        <result column="STRATEGY_QUARTER_RATE" property="strategyQuarterRate" />
+        <result column="STRATEGY_YEAR_RATE" property="strategyYearRate" />
+        <result column="STRATEGY_YEAR_YIELD" property="strategyYearYield" />
+        <result column="STRATEGY_VOL" property="strategyVol" />
+        <result column="STRATEGY_MAX_DRAWDOWN" property="strategyMaxDrawDown" />
+        <result column="STRATEGY_CALMAR" property="strategyCalmar" />
+        <result column="indexName" property="indexName" />
+        <result column="STRATEGY_FUND" property="strategyFund"/>
+        <result column="CREATOR" property="creator" />
+        <result column="CREATED_AT" property="createdAt" />
+        <result column="UPDATER" property="updater" />
+        <result column="UPDATED_AT" property="updatedAt" />
+        <result column="FILE_NAME" property="fileName"/>
+        <result column="FILE_DATE" property="fileDate"/>
+        <result column="FILE_URL" property="fileUrl"/>
+    </resultMap>
+	<!-- 精彩策略 -->
+    <select id="getGoodStrategy" resultType="com.research.entity.TStrategyMarketInfo">
+        select *
+        from (SELECT A.SK_STRATEGY,
+                     A.STRATEGY_NAME,
+                     A.FIRST_CATEGORY,
+                     A.SECOND_CATEGORY,
+                     A.STRATEGY_STRUCTURE,
+                     A.STRATEGY_EXPECT,
+                     A.MANAGER_USER,
+                     A.START_DATE,
+                     A.STRATEGY_LOGIC,
+                     A.FALLBACK_CONTROL,
+                     A.SUIT_MARKET,
+                     A.SK_FILE,
+                     A.STRATEGY_LABEL,
+                     A.INDEX_NAME,
+                     F.STRATEGY_CALMAR,
+                     A.STRATEGY_STYLE,
+                     F.STRATEGY_QUARTER_RATE,
+                     F.STRATEGY_YEAR_RATE,
+                     F.STRATEGY_YEAR_YIELD,
+                     F.STRATEGY_VOL,
+                     F.STRATEGY_MAX_DRAWDOWN,
+                     F.STRATEGY_WEEK_YIELD,
+                     F.STRATEGY_MONTH_YIELD,
+                     F.STRATEGY_3MONTH_YIELD,
+                     F.STRATEGY_HALF_YEAR_YIELD,
+                     F.STRATEGY_1YEAR_YIELD,
+                     F.STRATEGY_3YEAR_YIELD,
+                     F.STRATEGY_ESTABLISH_YIELD,
+                     F.STRATEGY_THIS_YEAR_YIELD,
+                     F.SK_DATE,
+                     C.FILE_NAME,
+                     C.FILE_DATE,
+                     C.FILE_URL
+              FROM app_pms.TSTRATEGY_MARKET_INFO A
+                       LEFT JOIN app_pms.TSTRATEGY_MARKET_FILE C
+                                 ON A.SK_FILE = C.SK_FILE
+                       LEFT JOIN (SELECT A.*,
+                                         RANK() OVER(PARTITION BY A.SK_STRATEGY ORDER BY A.SK_DATE DESC) RANK_NUM
+                                  FROM app_pms.TSTRATEGY_MARKET_DAILY_PERFM A) F
+                                 ON A.SK_STRATEGY = F.SK_STRATEGY
+                                     AND RANK_NUM = 1
+        where A.STRATEGY_STRUCTURE = #{type}
+              and A.STATUS = 1
+              and F.STRATEGY_YEAR_YIELD is not null
+        order by F.strategy_year_yield desc)
+        where rownum &lt;= 3
+
+    </select>
+	<!-- 策略列表 -->
+    <select id="getStrategyList" resultType="com.research.entity.TStrategyMarketInfo">
+        SELECT A.SK_STRATEGY,
+        A.STRATEGY_NAME,
+        A.FIRST_CATEGORY,
+        A.SECOND_CATEGORY,
+        A.STRATEGY_STRUCTURE,
+        A.STRATEGY_EXPECT,
+        A.MANAGER_USER,
+        A.START_DATE,
+        A.STRATEGY_LOGIC,
+        A.FALLBACK_CONTROL,
+        A.SUIT_MARKET,
+        A.SK_FILE,
+        A.STRATEGY_LABEL,
+        A.INDEX_NAME,
+        F.STRATEGY_CALMAR,
+        A.STRATEGY_STYLE,
+        F.STRATEGY_QUARTER_RATE,
+        F.STRATEGY_YEAR_RATE,
+        F.STRATEGY_YEAR_YIELD,
+        F.STRATEGY_VOL,
+        F.STRATEGY_MAX_DRAWDOWN,
+        F.STRATEGY_WEEK_YIELD,
+        F.STRATEGY_MONTH_YIELD,
+        F.STRATEGY_3MONTH_YIELD,
+        F.STRATEGY_HALF_YEAR_YIELD,
+        F.STRATEGY_1YEAR_YIELD,
+        F.STRATEGY_3YEAR_YIELD,
+        F.STRATEGY_ESTABLISH_YIELD,
+        F.STRATEGY_THIS_YEAR_YIELD,
+        F.SK_DATE,
+        C.FILE_NAME,
+        C.FILE_DATE,
+        C.FILE_URL
+        FROM app_pms.TSTRATEGY_MARKET_INFO A
+        LEFT JOIN app_pms.TSTRATEGY_MARKET_FILE C
+        ON A.SK_FILE = C.SK_FILE
+        LEFT JOIN (SELECT A.*,
+        RANK() OVER(PARTITION BY A.SK_STRATEGY ORDER BY A.SK_DATE DESC) RANK_NUM
+        FROM app_pms.TSTRATEGY_MARKET_DAILY_PERFM A) F
+        ON A.SK_STRATEGY = F.SK_STRATEGY
+        AND RANK_NUM = 1
+        where A.STATUS = 1
+        <if test="keyword != null">
+            and A.strategy_name like '%'||#{keyword}||'%'
+        </if>
+        <if test="category != null">
+            and  A.first_category = #{category}
+        </if>
+        <if test="label!=null">
+            <foreach collection="label" item="item" open="AND (" close=")" separator="OR">
+                instr(A.strategy_label, #{item}) > 0
+            </foreach>
+        </if>
+        ORDER BY A.SK_STRATEGY
+    </select>
+	<!-- 收藏列表 -->
+    <select id="getCollectList" resultType="com.research.entity.TStrategyMarketInfo">
+        SELECT A.SK_STRATEGY,
+        A.STRATEGY_NAME,
+        A.FIRST_CATEGORY,
+        A.SECOND_CATEGORY,
+        A.STRATEGY_STRUCTURE,
+        A.STRATEGY_EXPECT,
+        A.MANAGER_USER,
+        A.START_DATE,
+        A.STRATEGY_LOGIC,
+        A.FALLBACK_CONTROL,
+        A.SUIT_MARKET,
+        A.SK_FILE,
+        A.STRATEGY_LABEL,
+        A.INDEX_NAME,
+        F.STRATEGY_CALMAR,
+        A.STRATEGY_STYLE,
+        F.STRATEGY_QUARTER_RATE,
+        F.STRATEGY_YEAR_RATE,
+        F.STRATEGY_YEAR_YIELD,
+        F.STRATEGY_VOL,
+        F.STRATEGY_MAX_DRAWDOWN,
+        F.STRATEGY_WEEK_YIELD,
+        F.STRATEGY_MONTH_YIELD,
+        F.STRATEGY_3MONTH_YIELD,
+        F.STRATEGY_HALF_YEAR_YIELD,
+        F.STRATEGY_1YEAR_YIELD,
+        F.STRATEGY_3YEAR_YIELD,
+        F.STRATEGY_ESTABLISH_YIELD,
+        F.STRATEGY_THIS_YEAR_YIELD,
+        F.SK_DATE,
+        C.FILE_NAME,
+        C.FILE_DATE,
+        C.FILE_URL,
+        D.FOLLOW_NUM,
+        DECODE(E.SK_STRATEGY, NULL, 0, 1) IS_FOLLOW
+        FROM app_pms.TSTRATEGY_MARKET_INFO A
+        LEFT JOIN app_pms.TSTRATEGY_MARKET_FILE C
+        ON A.SK_FILE = C.SK_FILE
+        LEFT JOIN (SELECT SK_STRATEGY, COUNT(USER_ID) AS FOLLOW_NUM
+        FROM app_pms.TSTRATEGY_MARKET_FOLLOW
+        GROUP BY SK_STRATEGY) D
+        ON A.SK_STRATEGY = D.SK_STRATEGY
+        LEFT JOIN (SELECT DISTINCT SK_STRATEGY, USER_ID,LOGIN_ID
+        FROM app_pms.TSTRATEGY_MARKET_FOLLOW) E
+        ON A.SK_STRATEGY = E.SK_STRATEGY
+        AND E.LOGIN_ID = #{loginId}
+        LEFT JOIN (SELECT A.*,
+        RANK() OVER(PARTITION BY A.SK_STRATEGY ORDER BY A.SK_DATE DESC) RANK_NUM
+        FROM app_pms.TSTRATEGY_MARKET_DAILY_PERFM A) F
+        ON A.SK_STRATEGY = F.SK_STRATEGY
+        AND RANK_NUM = 1
+        WHERE A.STATUS = 1
+        and DECODE(E.SK_STRATEGY, NULL, 0, 1) = 1
+        <if test="category != null">
+            and  a.first_category = #{category}
+        </if>
+        <if test="label != null">
+            <foreach collection="label" item="item" open="AND (" close=")" separator="OR">
+                instr(a.strategy_label, #{item}) > 0
+            </foreach>
+        </if>
+        ORDER BY A.SK_STRATEGY
+    </select>
+	<!-- 策略详情 -->
+    <select id="getStrategyDetail" resultType="com.research.entity.TStrategyMarketInfo">
+        SELECT A.SK_STRATEGY,
+               A.STRATEGY_NAME,
+               A.FIRST_CATEGORY,
+               A.SECOND_CATEGORY,
+               A.STRATEGY_STRUCTURE,
+               A.STRATEGY_EXPECT,
+               A.MANAGER_USER,
+               A.START_DATE,
+               A.STRATEGY_LOGIC,
+               A.FALLBACK_CONTROL,
+               A.SUIT_MARKET,
+               A.SK_FILE,
+               A.STRATEGY_LABEL,
+               A.INDEX_NAME,
+               F.STRATEGY_CALMAR,
+               A.STRATEGY_STYLE,
+               F.STRATEGY_QUARTER_RATE,
+               F.STRATEGY_YEAR_RATE,
+               F.STRATEGY_YEAR_YIELD,
+               F.STRATEGY_VOL,
+               F.STRATEGY_MAX_DRAWDOWN,
+               F.STRATEGY_WEEK_YIELD,
+               F.STRATEGY_MONTH_YIELD,
+               F.STRATEGY_3MONTH_YIELD,
+               F.STRATEGY_HALF_YEAR_YIELD,
+               F.STRATEGY_1YEAR_YIELD,
+               F.STRATEGY_3YEAR_YIELD,
+               F.STRATEGY_ESTABLISH_YIELD,
+               F.STRATEGY_THIS_YEAR_YIELD,
+               F.SK_DATE,
+               C.FILE_NAME,
+               C.FILE_DATE,
+               C.FILE_URL
+        FROM app_pms.TSTRATEGY_MARKET_INFO A
+                 LEFT JOIN app_pms.TSTRATEGY_MARKET_FILE C
+                           ON A.SK_FILE = C.SK_FILE
+                 LEFT JOIN (SELECT A.*,
+                                   RANK() OVER(PARTITION BY A.SK_STRATEGY ORDER BY A.SK_DATE DESC) RANK_NUM
+                            FROM app_pms.TSTRATEGY_MARKET_DAILY_PERFM A) F
+                           ON A.SK_STRATEGY = F.SK_STRATEGY
+                               AND RANK_NUM = 1
+        where A.STATUS = 1 and A.sk_strategy=#{skStrategy}
+    </select>
+	
+	<!-- 收益率 -->
+    <select id="getYield" resultType="com.research.dto.TStrategyMarketYieldDto">
+        WITH STRATEGY_INDEX_NAV AS (
+        SELECT
+            A.ST_DATE SK_DATE,
+            B.SK_STRATEGY,
+            C.MKT_ISSUE_SHORT_NAME INDEX_NAME,
+            B.STRATEGY_NAME,
+            NVL(A.YEILD,0) STRATEGY_YIELD,
+            decode(A.YEILD,null,0,c.YIELD) INDEX_YIELD
+        FROM app_pms.ST_STRATEGYNAV_DAILY A INNER JOIN app_pms.TSTRATEGY_MARKET_INFO B
+            ON A.PMS_ID = B.SK_STRATEGY
+        LEFT JOIN app_pms.ST_ISSU_INDEX_QUOTATION C
+            ON A.ST_DATE = C.SK_DATE
+            AND B.INDEX_NAME = C.MKT_ISSUE_SHORT_NAME
+        WHERE B.SK_STRATEGY = #{skStrategy}
+        <if test="startDate != null and startDate != ''">
+            AND A.ST_DATE >= #{startDate}
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND A.ST_DATE &lt;= #{endDate}
+        </if>
+        ORDER BY SK_DATE
+        ),
+        YIELD_DAY AS (
+        SELECT      A.SK_DATE,                  A.SK_STRATEGY,              A.INDEX_NAME,                   A.STRATEGY_NAME,
+        to_char(to_date(A.SK_DATE,'yyyyMMdd'),'yyyy') C_YEAR,   to_char(to_date(A.SK_DATE,'yyyyMMdd'),'Q') C_QUARTER,
+        A.STRATEGY_YIELD,            A.INDEX_YIELD
+        FROM STRATEGY_INDEX_NAV A
+        ORDER BY  A.SK_DATE
+        ),
+
+        FULL_QUARTER AS (
+        SELECT A.C_YEAR,             A.C_QUARTER,  1 AS IS_FULL_QUARTER
+        FROM YIELD_DAY A INNER JOIN app_pms.vw_comm_cldr_custom B
+        ON A.SK_DATE = B.SK_DATE
+        and  b.SK_CALENDAR =2
+        WHERE B.SK_DICT_OF_QRT_FST_WORKDAY = 1 OR B.SK_DICT_OF_QRT_LAST_WORKDAY = 1
+        GROUP BY A.C_YEAR,             A.C_QUARTER
+        HAVING COUNT(1) = 2
+        ),
+
+        FULL_YEAR AS (
+        SELECT A.C_YEAR,         1 AS IS_FULL_YEAR
+        FROM YIELD_DAY A INNER JOIN app_pms.vw_comm_cldr_custom B
+        ON A.SK_DATE = B.SK_DATE
+        and  b.SK_CALENDAR =2
+        WHERE B.SK_DICT_OF_YLY_FST_WORKDAY = 1 OR B.SK_DICT_OF_YLY_LAST_WORKDAY = 1
+        GROUP BY A.C_YEAR
+        HAVING COUNT(1) = 2
+        ),
+        YEAR_QUARTER_RATE as (
+        SELECT  A.SK_DATE,                  A.SK_STRATEGY,              A.STRATEGY_NAME,                         A.INDEX_NAME,
+        A.STRATEGY_YIELD,           A.INDEX_YIELD,              A.c_year,                       A.c_quarter,
+        DECODE(B.IS_FULL_QUARTER,1,RANK() OVER(PARTITION BY A.C_YEAR, A.C_QUARTER ORDER BY A.SK_DATE DESC),NULL) QUARTER_RANK_NUM,
+        EXP(SUM(LN(1 + A.STRATEGY_YIELD)) OVER (PARTITION BY A.C_YEAR, A.C_QUARTER ORDER BY A.SK_DATE)) - 1 STRATEGY_YIELD_Q,
+        EXP(SUM(LN(1 + A.INDEX_YIELD)) OVER (PARTITION BY A.C_YEAR, A.C_QUARTER ORDER BY A.SK_DATE)) - 1 INDEX_YIELD_Q,
+
+        DECODE(C.IS_FULL_YEAR,1, RANK() OVER(PARTITION BY A.C_YEAR ORDER BY A.SK_DATE DESC),NULL) YEAR_RANK_NUM,
+        EXP(SUM(LN(1 + A.STRATEGY_YIELD)) OVER (PARTITION BY A.C_YEAR ORDER BY A.SK_DATE)) - 1 STRATEGY_YIELD_Y,
+        EXP(SUM(LN(1 + A.INDEX_YIELD)) OVER (PARTITION BY A.C_YEAR ORDER BY A.SK_DATE)) - 1 INDEX_YIELD_Y,
+
+        EXP(SUM(LN(1 + A.STRATEGY_YIELD)) OVER(ORDER BY A.SK_DATE)) STRATEGY_NAV,
+        EXP(SUM(LN(1 + A.INDEX_YIELD)) OVER(ORDER BY A.SK_DATE)) INDEX_NAV,
+        EXP(SUM(LN(1 + A.STRATEGY_YIELD)) OVER()) - 1 SUM_STRATEGY_YIELD,
+        EXP(SUM(LN(1 + A.INDEX_YIELD)) OVER()) - 1 SUM_INDEX_YIELD,
+        TO_DATE(MAX(SK_DATE) OVER(),'yyyyMMdd')-TO_DATE(MIN(SK_DATE) OVER(),'yyyyMMdd') DAYS_C,
+        (TO_DATE(MAX(SK_DATE) OVER(),'yyyyMMdd')-TO_DATE(MIN(SK_DATE) OVER(),'yyyyMMdd')) / 365 YEARS_C
+        FROM   YIELD_DAY A LEFT JOIN FULL_QUARTER B
+        ON A.C_YEAR = B.C_YEAR
+        AND A.C_QUARTER = B.C_QUARTER
+        LEFT JOIN FULL_YEAR C
+        ON A.C_YEAR = C.C_YEAR
+        ),
+
+        QUARTER_RATE AS (
+        SELECT A.SK_STRATEGY, A.INDEX_NAME, A.STRATEGY_NAME,
+        CASE WHEN COUNT(C_QUARTER) = 0 THEN 0
+        WHEN A.INDEX_NAME IS NULL THEN  SUM(CASE WHEN A.STRATEGY_YIELD_Q > 0 THEN 1 ELSE 0 END)/COUNT(C_QUARTER)
+        ELSE SUM(CASE WHEN A.STRATEGY_YIELD_Q > A.INDEX_YIELD_Q  THEN 1 ELSE 0 END)/COUNT(C_QUARTER) END STRATEGY_QUARTER_RATE,
+        DECODE(COUNT(C_QUARTER),0,0, SUM(CASE WHEN A.INDEX_YIELD_Q > 0 THEN 1 ELSE 0 END)/COUNT(C_QUARTER)) INDEX_QUARTER_RATE
+        FROM YEAR_QUARTER_RATE A
+        WHERE A.QUARTER_RANK_NUM = 1
+        GROUP BY A.SK_STRATEGY, A.INDEX_NAME, A.STRATEGY_NAME),
+
+        YEAR_RATE AS (
+        SELECT A.SK_STRATEGY, A.INDEX_NAME, A.STRATEGY_NAME,
+        CASE WHEN  COUNT(C_YEAR) = 0 THEN 0
+        WHEN A.INDEX_NAME IS NULL THEN SUM(CASE WHEN A.STRATEGY_YIELD_Y > 0 THEN 1 ELSE 0 END)/COUNT(C_YEAR)
+        ELSE SUM(CASE WHEN A.STRATEGY_YIELD_Y > A.INDEX_YIELD_Y THEN 1 ELSE 0 END)/COUNT(C_YEAR) END STRATEGY_YEAR_RATE,
+        DECODE(COUNT(C_YEAR),0,0, SUM(CASE WHEN A.INDEX_YIELD_Y > 0 THEN 1 ELSE 0 END)/COUNT(C_YEAR)) INDEX_YEAR_RATE
+        FROM YEAR_QUARTER_RATE A
+        WHERE A.YEAR_RANK_NUM = 1
+        GROUP BY A.SK_STRATEGY, A.INDEX_NAME, A.STRATEGY_NAME
+        ),
+        YEAR_QUARTER_RATE_DRAW AS(
+        SELECT  A.SK_DATE,                  A.SK_STRATEGY,              A.STRATEGY_NAME,                         A.INDEX_NAME,
+        A.STRATEGY_YIELD,           A.INDEX_YIELD,              A.c_year,                       A.c_quarter,
+        A.QUARTER_RANK_NUM,         A.STRATEGY_YIELD_Q,         A.INDEX_YIELD_Q,
+        A.YEAR_RANK_NUM,            A.STRATEGY_YIELD_Y,         A.INDEX_YIELD_Y,
+        A.SUM_STRATEGY_YIELD,       A.SUM_INDEX_YIELD,          A.DAYS_C,                       A.YEARS_C,
+        ROUND(DECODE(STRATEGY_NAV,0,0,(STRATEGY_NAV - MIN(STRATEGY_NAV) OVER(ORDER BY SK_DATE DESC)) / STRATEGY_NAV),8) STRATEGY_DRAWDOWN,
+        ROUND(DECODE(INDEX_NAME,NULL,NULL,0,0,(INDEX_NAV - MIN(INDEX_NAV) OVER(ORDER BY SK_DATE DESC)) /INDEX_NAV),8) INDEX_DRAWDOWN
+
+        FROM  YEAR_QUARTER_RATE  A
+        )
+        SELECT A.SK_STRATEGY,                     A.INDEX_NAME,             A.STRATEGY_NAME,
+        B.STRATEGY_QUARTER_RATE,           NULL INDEX_QUARTER_RATE,
+        C.STRATEGY_YEAR_RATE,              NULL INDEX_YEAR_RATE,
+        CASE WHEN A.YEARS_C &lt; 1 THEN A.SUM_STRATEGY_YIELD / DAYS_C * 365
+        WHEN A.YEARS_C >= 1 THEN POWER(A.SUM_STRATEGY_YIELD + 1 , 365 / DAYS_C) - 1 END STRATEGY_YEAR_YIELD,
+        CASE WHEN A.YEARS_C &lt; 1 THEN A.SUM_INDEX_YIELD / DAYS_C * 365
+        WHEN A.YEARS_C >= 1 THEN POWER(A.SUM_INDEX_YIELD + 1 , 365 / DAYS_C) - 1 END INDEX_YEAR_YIELD,
+        STDDEV(A.STRATEGY_YIELD) * SQRT(252) STRATEGY_VOL,
+        STDDEV(A.INDEX_YIELD) * SQRT(252) INDEX_VOL,
+        MAX(A.STRATEGY_DRAWDOWN) STRATEGY_MAX_DRAWDOWN,
+        MAX(INDEX_DRAWDOWN) INDEX_MAX_DRAWDOWN,
+        CASE WHEN A.YEARS_C &lt; 1 THEN A.SUM_STRATEGY_YIELD / DAYS_C * 365
+        WHEN A.YEARS_C >= 1 THEN POWER(A.SUM_STRATEGY_YIELD + 1 , 365 / DAYS_C) - 1 END /MAX(A.STRATEGY_DRAWDOWN)  STRATEGY_CALMAR,
+        CASE WHEN A.YEARS_C &lt; 1 THEN A.SUM_INDEX_YIELD / DAYS_C * 365
+        WHEN A.YEARS_C >= 1 THEN POWER(A.SUM_INDEX_YIELD + 1 , 365 / DAYS_C) - 1 END / MAX(INDEX_DRAWDOWN) INDEX_CALMAR
+
+        FROM YEAR_QUARTER_RATE_DRAW A LEFT JOIN QUARTER_RATE B
+        ON A.SK_STRATEGY = B.SK_STRATEGY
+        LEFT JOIN YEAR_RATE C
+        ON A.SK_STRATEGY = C.SK_STRATEGY
+        GROUP BY A.SK_STRATEGY,                        A.INDEX_NAME,                A.STRATEGY_NAME,
+        A.YEARS_C,                             A.DAYS_C,                   A.SUM_STRATEGY_YIELD,
+        A.SUM_INDEX_YIELD,
+        B.STRATEGY_QUARTER_RATE,               B.INDEX_QUARTER_RATE,
+        C.STRATEGY_YEAR_RATE,                  C.INDEX_YEAR_RATE
+    </select>
+	<!-- 业绩表现 -->
+    <select id="getPerform" resultType="com.research.dto.TStrategyMarketPerformDto">
+        WITH STRATEGY_INDEX_NAV AS (
+        SELECT     A.ST_DATE SK_DATE,                  B.SK_STRATEGY,              C.MKT_ISSUE_SHORT_NAME INDEX_NAME,
+        B.STRATEGY_NAME,
+        NVL(A.YEILD,0) STRATEGY_YIELD,             decode(A.YEILD,null,0,c.YIELD) INDEX_YIELD
+        FROM app_pms.ST_STRATEGYNAV_DAILY A INNER JOIN app_pms.TSTRATEGY_MARKET_INFO B
+        ON A.PMS_ID = B.SK_STRATEGY
+        LEFT JOIN app_pms.ST_ISSU_INDEX_QUOTATION C
+        ON A.ST_DATE = C.SK_DATE
+        AND B.INDEX_NAME = C.MKT_ISSUE_SHORT_NAME
+        WHERE B.SK_STRATEGY = #{skStrategy}
+        <if test="startDate != null and startDate != ''">
+            AND A.ST_DATE >= #{startDate}
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND A.ST_DATE &lt;= #{endDate}
+        </if>
+        and  to_char(sysdate,'yyyyMMdd') > a.st_date
+        ),
+        YIELD_DAY AS (
+        SELECT      A.SK_DATE,                  A.SK_STRATEGY,              A.INDEX_NAME,                   A.STRATEGY_NAME,
+        to_char(to_date(A.SK_DATE,'yyyyMMdd'),'yyyy') C_YEAR,   to_char(to_date(A.SK_DATE,'yyyyMMdd'),'yyyyMM') C_MONTH,
+        to_char(to_date(A.SK_DATE,'yyyyMMdd'),'ww') C_WEEK,
+        A.STRATEGY_YIELD,
+        A.INDEX_YIELD
+        FROM STRATEGY_INDEX_NAV A
+        ORDER BY  A.SK_DATE
+        ),
+        YIELD_WEEK_MONTH AS (
+        SELECT  A.SK_DATE,                  A.SK_STRATEGY,              A.INDEX_NAME,         A.STRATEGY_NAME,
+        RANK() OVER(PARTITION BY A.C_MONTH ORDER BY A.SK_DATE DESC)  MONTH_RANK_NUM,
+        RANK() OVER(PARTITION BY A.C_YEAR, A.C_WEEK ORDER BY A.SK_DATE DESC)  WEEK_RANK_NUM,
+
+        EXP(SUM(LN(1 + A.STRATEGY_YIELD)) OVER (PARTITION BY A.C_YEAR, A.C_WEEK ORDER BY A.SK_DATE)) - 1 STRATEGY_YIELD_W,
+        EXP(SUM(LN(1 + A.INDEX_YIELD)) OVER (PARTITION BY A.C_YEAR, A.C_WEEK ORDER BY A.SK_DATE)) - 1 INDEX_YIELD_W,
+
+        EXP(SUM(LN(1 + A.STRATEGY_YIELD)) OVER (PARTITION BY A.C_MONTH ORDER BY A.SK_DATE)) - 1 STRATEGY_YIELD_M,
+        EXP(SUM(LN(1 + A.INDEX_YIELD)) OVER (PARTITION BY A.C_MONTH ORDER BY A.SK_DATE)) - 1 INDEX_YIELD_M,
+
+        EXP(SUM(LN(1 + A.STRATEGY_YIELD)) OVER (ORDER BY A.SK_DATE)) - 1 STRATEGY_YIELD_D,
+        EXP(SUM(LN(1 + A.INDEX_YIELD)) OVER (ORDER BY A.SK_DATE)) - 1 INDEX_YIELD_D
+        FROM YIELD_DAY A
+        ORDER BY A.SK_DATE
+        )
+        SELECT  A.SK_DATE,                  A.SK_STRATEGY,              A.INDEX_NAME,         A.STRATEGY_NAME,
+        CASE WHEN  #{timeDimension} = 'W' THEN A.STRATEGY_YIELD_W
+        WHEN  #{timeDimension} = 'M' THEN STRATEGY_YIELD_M
+        ELSE A.STRATEGY_YIELD_D END STRATEGY_YIELD,
+
+        CASE WHEN  #{timeDimension} = 'W' THEN A.INDEX_YIELD_W
+        WHEN  #{timeDimension} = 'M' THEN INDEX_YIELD_M
+        ELSE A.INDEX_YIELD_D END INDEX_YIELD
+        FROM YIELD_WEEK_MONTH A
+        <where>
+            <if test='timeDimension != null and  timeDimension == "W"'>
+                AND A.WEEK_RANK_NUM = 1
+            </if>
+            <if test='timeDimension != null and  timeDimension == "M"'>
+                AND A.MONTH_RANK_NUM = 1
+            </if>
+        </where>
+        ORDER BY A.SK_DATE
+    </select>
+	
+    <select id="queryMinAndMaxYield" resultType="java.util.Map">
+        select max(STRATEGY_YIELD) maxStrategyYield,
+        max(INDEX_YIELD) maxIndexYield,
+        min(STRATEGY_YIELD) minStrategyYield,
+        min(INDEX_YIELD) minIndexYield
+        from (
+        WITH STRATEGY_INDEX_NAV AS (
+        SELECT     A.ST_DATE SK_DATE,                  B.SK_STRATEGY,              C.MKT_ISSUE_SHORT_NAME INDEX_NAME,
+        B.STRATEGY_NAME,
+        NVL(A.YEILD,0) STRATEGY_YIELD,             decode(A.YEILD,null,0,c.YIELD) INDEX_YIELD
+        FROM app_pms.ST_STRATEGYNAV_DAILY A INNER JOIN app_pms.TSTRATEGY_MARKET_INFO B
+        ON A.PMS_ID = B.SK_STRATEGY
+        LEFT JOIN app_pms.ST_ISSU_INDEX_QUOTATION C
+        ON A.ST_DATE = C.SK_DATE
+        AND B.INDEX_NAME = C.MKT_ISSUE_SHORT_NAME
+        WHERE B.SK_STRATEGY = #{skStrategy}
+        <if test="startDate != null and startDate != ''">
+            AND A.ST_DATE >= #{startDate}
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND A.ST_DATE &lt;= #{endDate}
+        </if>
+        and  to_char(sysdate,'yyyyMMdd') > a.st_date
+        ),
+        YIELD_DAY AS (
+        SELECT      A.SK_DATE,                  A.SK_STRATEGY,              A.INDEX_NAME,                   A.STRATEGY_NAME,
+        to_char(to_date(A.SK_DATE,'yyyyMMdd'),'yyyy') C_YEAR,   to_char(to_date(A.SK_DATE,'yyyyMMdd'),'yyyyMM') C_MONTH,
+        to_char(to_date(A.SK_DATE,'yyyyMMdd'),'ww') C_WEEK,
+        A.STRATEGY_YIELD,
+        A.INDEX_YIELD
+        FROM STRATEGY_INDEX_NAV A
+        ORDER BY  A.SK_DATE
+        ),
+        YIELD_WEEK_MONTH AS (
+        SELECT  A.SK_DATE,                  A.SK_STRATEGY,              A.INDEX_NAME,         A.STRATEGY_NAME,
+        RANK() OVER(PARTITION BY A.C_MONTH ORDER BY A.SK_DATE DESC)  MONTH_RANK_NUM,
+        RANK() OVER(PARTITION BY A.C_YEAR, A.C_WEEK ORDER BY A.SK_DATE DESC)  WEEK_RANK_NUM,
+
+        EXP(SUM(LN(1 + A.STRATEGY_YIELD)) OVER (PARTITION BY A.C_YEAR, A.C_WEEK ORDER BY A.SK_DATE)) - 1 STRATEGY_YIELD_W,
+        EXP(SUM(LN(1 + A.INDEX_YIELD)) OVER (PARTITION BY A.C_YEAR, A.C_WEEK ORDER BY A.SK_DATE)) - 1 INDEX_YIELD_W,
+
+        EXP(SUM(LN(1 + A.STRATEGY_YIELD)) OVER (PARTITION BY A.C_MONTH ORDER BY A.SK_DATE)) - 1 STRATEGY_YIELD_M,
+        EXP(SUM(LN(1 + A.INDEX_YIELD)) OVER (PARTITION BY A.C_MONTH ORDER BY A.SK_DATE)) - 1 INDEX_YIELD_M,
+
+        EXP(SUM(LN(1 + A.STRATEGY_YIELD)) OVER (ORDER BY A.SK_DATE)) - 1 STRATEGY_YIELD_D,
+        EXP(SUM(LN(1 + A.INDEX_YIELD)) OVER (ORDER BY A.SK_DATE)) - 1 INDEX_YIELD_D
+        FROM YIELD_DAY A
+        ORDER BY A.SK_DATE
+        )
+        SELECT  A.SK_DATE,                  A.SK_STRATEGY,              A.INDEX_NAME,         A.STRATEGY_NAME,
+        CASE WHEN  #{timeDimension} = 'W' THEN A.STRATEGY_YIELD_W
+        WHEN  #{timeDimension} = 'M' THEN STRATEGY_YIELD_M
+        ELSE A.STRATEGY_YIELD_D END STRATEGY_YIELD,
+
+        CASE WHEN  #{timeDimension} = 'W' THEN A.INDEX_YIELD_W
+        WHEN  #{timeDimension} = 'M' THEN INDEX_YIELD_M
+        ELSE A.INDEX_YIELD_D END INDEX_YIELD
+        FROM YIELD_WEEK_MONTH A
+        <where>
+            <if test='timeDimension != null and  timeDimension == "W"'>
+                AND A.WEEK_RANK_NUM = 1
+            </if>
+            <if test='timeDimension != null and  timeDimension == "M"'>
+                AND A.MONTH_RANK_NUM = 1
+            </if>
+        </where>
+
+
+        )
+
+    </select>
+	
+	<!-- 策略分类 -->
+    <select id="strategyCategory" resultType="java.lang.String">
+        select first_category
+        from APP_PMS.TSTRATEGY_MARKET_INFO t
+        group by first_category
+    </select>
+	<!-- 精彩标签 -->
+    <select id="strategyLabel" resultType="java.lang.String">
+        select strategy_label
+        from APP_PMS.TSTRATEGY_MARKET_INFO t
+    </select>
+</mapper>

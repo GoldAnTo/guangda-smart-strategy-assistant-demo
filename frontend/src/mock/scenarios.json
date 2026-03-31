@@ -1,0 +1,44 @@
+[
+  {
+    "id": "scene-01",
+    "title": "稳健增厚型高净值客户",
+    "input": {
+      "customerType": "high_net_worth",
+      "riskPreference": "stable",
+      "investmentHorizon": "6-12m",
+      "liquidityNeed": "medium",
+      "returnGoal": "enhanced_stable",
+      "fundSize": 3000000,
+      "currentAllocation": "bank_wealth_management_majority",
+      "notes": "想比银行理财高一点，但别波动太大"
+    }
+  },
+  {
+    "id": "scene-02",
+    "title": "极度看重流动性的客户",
+    "input": {
+      "customerType": "individual",
+      "riskPreference": "conservative",
+      "investmentHorizon": "1-3m",
+      "liquidityNeed": "high",
+      "returnGoal": "capital_stability",
+      "fundSize": 1000000,
+      "currentAllocation": "cash_majority",
+      "notes": "钱随时可能要用，最好稳一点"
+    }
+  },
+  {
+    "id": "scene-06",
+    "title": "专户定制意向客户",
+    "input": {
+      "customerType": "high_net_worth",
+      "riskPreference": "custom",
+      "investmentHorizon": "12m_plus",
+      "liquidityNeed": "custom",
+      "returnGoal": "custom_need",
+      "fundSize": 50000000,
+      "currentAllocation": "mixed",
+      "notes": "我希望策略更贴我的需求，不要标准产品"
+    }
+  }
+]

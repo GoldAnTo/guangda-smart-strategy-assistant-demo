@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>基金策略展示大屏</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
+  </head>
+  <body>
+    <div class="screen-frame">
+      <canvas id="bg-canvas" aria-hidden="true"></canvas>
+      <div class="screen-noise" aria-hidden="true"></div>
+      <div class="screen-grid" aria-hidden="true"></div>
+
+      <main id="strategy-show" class="show-shell" data-view="grid" data-transition="idle">
+        <nav class="category-nav glass-panel" aria-label="策略类型导航">
+          <div id="category-tabs" class="category-tabs"></div>
+          <div class="nav-title">策略展示</div>
+        </nav>
+
+        <section class="stage-shell">
+          <section id="grid-view" class="view grid-view">
+            <div class="section-header">
+              <div>
+                <p class="section-kicker">Category Loop</p>
+                <h2 id="grid-title">--</h2>
+              </div>
+              <p id="grid-note" class="section-note">--</p>
+            </div>
+
+            <div id="loading-indicator" class="loading-indicator" style="display: none;">
+              <div class="loading-spinner"></div>
+              <p>正在加载策略数据...</p>
+            </div>
+
+            <div id="matrix-wall" class="matrix-wall"></div>
+          </section>
+
+          <section id="detail-view" class="view detail-view">
+            <article class="detail-surface glass-panel">
+              <div class="detail-top">
+                <div class="detail-main">
+                  <div class="detail-copy">
+                    <h2 id="detail-name">--</h2>
+                    <div id="detail-stars" class="star-row" aria-label="策略展望"></div>
+                    <div id="detail-tags" class="tag-row"></div>
+                    <p id="detail-logic" class="detail-logic">--</p>
+                  </div>
+
+
+                </div>
+
+                <aside class="detail-side">
+                  <div class="detail-stats-row">
+                    <div class="detail-stat-card-enhanced glass-panel">
+                      <div class="stat-header">
+                        <span class="stat-label">年化收益</span>
+                        <div class="metric-trend up" id="return-trend">
+                          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                            <path d="M6 2L10 7H2L6 2Z"/>
+                          </svg>
+                          <span>上升</span>
+                        </div>
+                      </div>
+                      <strong class="stat-value positive" id="detail-return">+0.00%</strong>
+                      <div class="metric-sparkline" id="return-sparkline"></div>
+                    </div>
+                    <div class="detail-stat-card-enhanced glass-panel">
+                      <span class="stat-label">年度胜率</span>
+                      <div class="winrate-ring" id="winrate-ring">
+                        <svg viewBox="0 0 100 100">
+                          <circle class="ring-bg" cx="50" cy="50" r="42" stroke-width="8"/>
+                          <circle class="ring-progress" cx="50" cy="50" r="42" stroke-width="8" stroke-dasharray="264" stroke-dashoffset="264"/>
+                        </svg>
+                        <div class="ring-text">
+                          <div class="ring-value" id="winrate-value">0%</div>
+                          <div class="ring-label">胜率</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </aside>
+              </div>
+
+              <div class="detail-bottom">
+                <article class="chart-panel glass-panel">
+                  <div class="chart-head">
+                    <div>
+                      <span id="chart-strategy-name" class="chart-strategy-name">--</span>
+                      <h3>收益曲线对比</h3>
+                    </div>
+                    <div id="period-tabs" class="period-tabs"></div>
+                  </div>
+                  <div id="chart-main" class="chart-main"></div>
+                </article>
+
+                <aside class="detail-sidebar">
+                  <div class="glass-panel benchmark-panel">
+                    <div class="info-row">
+                      <span class="info-label">策略结构</span>
+                      <strong id="detail-structure">--</strong>
+                    </div>
+                    <div class="info-row">
+                      <span class="info-label">策略类别</span>
+                      <strong id="detail-type">--</strong>
+                    </div>
+                    <div class="info-row">
+                      <span class="info-label">维护人员</span>
+                      <strong id="detail-owner">--</strong>
+                    </div>
+                    <div class="info-row">
+                      <span class="info-label">基准参考</span>
+                      <strong id="detail-benchmark">--</strong>
+                    </div>
+                  </div>
+                  <div id="derived-stats" class="derived-stats"></div>
+                </aside>
+              </div>
+            </article>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <script src="./assets/vendor/echarts.min.js"></script>
+    <script src="./data/strategies.js"></script>
+    <script src="./assets/app.js"></script>
+  </body>
+</html>
