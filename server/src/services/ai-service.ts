@@ -8,13 +8,25 @@ function getModelConfig() {
   }
 }
 
-async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = 60000) {
-  const timeoutPromise = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error(`请求超时（${timeoutMs / 1000}s），请重试`)), timeoutMs)
-  )
-  const fetchPromise = fetch(url, options)
-  const response = await Promise.race([fetchPromise, timeoutPromise]) as Response
-  return response
+async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = 30000): Promise<Response> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal as any })
+    clearTimeout(timer)
+    return response
+  } catch (err: any) {
+    clearTimeout(timer)
+    if (err.name === 'AbortError' || String(err.message).includes('aborted')) {
+      throw new Error(`请求超时（${timeoutMs / 1000}s），请重试`)
+    }
+    throw err
+  }
+}
+
+// 判断使用 Anthropic 格式还是 OpenAI 格式
+function isAnthropicFormat(url: string): boolean {
+  return url.includes('anthropic') || url.includes('minimaxi')
 }
 
 async function requestModel(prompt: string, systemContent: string, temperature: number) {
@@ -24,29 +36,55 @@ async function requestModel(prompt: string, systemContent: string, temperature: 
     throw new Error('MODEL_API_URL or MODEL_API_KEY is missing')
   }
 
-  const response = await fetchWithTimeout(
-    url,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${key}`
+  let response: Response
+  if (isAnthropicFormat(url)) {
+    // Anthropic 格式（MiniMax 等）
+    response = await fetchWithTimeout(
+      url + '/messages',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': key,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model: name,
+          system: systemContent,
+          messages: [{ role: 'user', content: prompt }],
+          temperature,
+          max_tokens: 2000
+        })
       },
-      body: JSON.stringify({
-        model: name,
-        messages: [
-          { role: 'system', content: systemContent },
-          { role: 'user', content: prompt }
-        ],
-        temperature
-      })
-    },
-    30000
-  )
+      30000
+    )
+  } else {
+    // OpenAI 兼容格式
+    response = await fetchWithTimeout(
+      url + '/chat/completions',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${key}`
+        },
+        body: JSON.stringify({
+          model: name,
+          messages: [
+            { role: 'system', content: systemContent },
+            { role: 'user', content: prompt }
+          ],
+          temperature,
+          max_tokens: 2000
+        })
+      },
+      30000
+    )
+  }
 
   if (!response.ok) {
     const text = await response.text()
-    throw new Error(`AI request failed: ${response.status} ${text}`)
+    throw new Error(`AI request failed: ${response.status} ${text.slice(0, 200)}`)
   }
 
   return response.json()
@@ -67,16 +105,31 @@ const CHAT_SYSTEM_PROMPT = `
 
 你的回答风格：
 - 专业但通俗
-- 简洁、克制、自然
+- 简洁、克制，自然
 - 先解释，再给方向
 - 不要堆术语，不要写成官话或营销文案
 `.trim()
 
+function extractAnthropicContent(data: any): string {
+  const blocks = data.content || []
+  return blocks
+    .filter((b: any) => b.type === 'text')
+    .map((b: any) => b.text)
+    .join('')
+}
+
+function extractOpenAIContent(data: any): string {
+  return data.choices?.[0]?.message?.content || ''
+}
+
 export const aiService = {
   async generateJson(prompt: string): Promise<string> {
+    const { url } = getModelConfig()
     for (let attempt = 0; attempt < 2; attempt++) {
       const data = await requestModel(prompt, JSON_SYSTEM_PROMPT, 0.2)
-      const content = data.choices?.[0]?.message?.content || '{}'
+      const content = isAnthropicFormat(url || '')
+        ? extractAnthropicContent(data)
+        : extractOpenAIContent(data)
 
       try {
         JSON.parse(content)
@@ -87,12 +140,14 @@ export const aiService = {
         }
       }
     }
-
     return '{}'
   },
 
   async generateText(prompt: string): Promise<string> {
+    const { url } = getModelConfig()
     const data = await requestModel(prompt, CHAT_SYSTEM_PROMPT, 0.2)
-    return data.choices?.[0]?.message?.content || ''
+    return isAnthropicFormat(url || '')
+      ? extractAnthropicContent(data)
+      : extractOpenAIContent(data)
   }
 }

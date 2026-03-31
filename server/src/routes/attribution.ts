@@ -34,13 +34,7 @@ router.get('/api/attribution/quicktest', (_req, res) => {
 router.post('/api/attribution', async (req, res) => {
   const requestId = res.locals.requestId
 
-  // 超时保护：35秒后强制返回
-  const timeoutMs = 35000
-  const timeoutPromise = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(new Error('handler timeout')), timeoutMs)
-  )
-
-  async function doAttribution() {
+  try {
     const { strategy, period = '近一月', periodReturn } = req.body as {
       strategy: {
         name: string
@@ -112,7 +106,6 @@ router.post('/api/attribution', async (req, res) => {
       const jsonStr = jsonMatch ? jsonMatch[1] : raw
       parsed = JSON.parse(jsonStr.trim())
     } catch {
-      // 降级返回原始文本
       const data = {
         strategyName: r.name,
         period,
@@ -146,14 +139,11 @@ router.post('/api/attribution', async (req, res) => {
     }
     res.setHeader('Content-Type', 'application/json; charset=utf-8')
     res.send(JSON.stringify(successResponse(data, requestId)))
-  }
 
-  try {
-    await Promise.race([doAttribution(), timeoutPromise])
   } catch (err: any) {
     console.error(`[${requestId}] attribution error:`, err.message)
-    const msg = err.message === 'handler timeout'
-      ? '归因分析超时（35秒），请重试'
+    const msg = err.message?.includes('timeout') || err.message?.includes('超时')
+      ? '归因分析超时，请重试（AI 服务响应较慢，请耐心等待）'
       : '归因分析失败：' + (err.message || '未知错误')
     res.setHeader('Content-Type', 'application/json; charset=utf-8')
     res.status(500).send(JSON.stringify(errorResponse(msg, requestId)))
