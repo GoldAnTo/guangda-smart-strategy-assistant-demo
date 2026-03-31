@@ -652,7 +652,11 @@ function fmt(v: number | null | undefined, decimals = 2, sign = true): string {
 // ═══════════════ 产品地图 ═══════════════
 function renderMap() {
   if (!mapChartRef.value) return
-  if (!mapChartInstance.value) mapChartInstance.value = echarts.init(mapChartRef.value)
+  if (mapChartInstance.value) {
+    mapChartInstance.value.dispose()
+    mapChartInstance.value = null
+  }
+  mapChartInstance.value = echarts.init(mapChartRef.value)
 
   const data = allStrategies.value.map(s => ({
     name: s.name,
