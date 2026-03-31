@@ -72,9 +72,31 @@ router.post('/api/attribution', async (req, res) => {
 
     let raw = await aiService.generateText(prompt)
     // 尝试从 markdown 代码块中提取 JSON
-    const jsonMatch = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/) || raw.match(/^\s*(\{[\s\S]*\})\s*$/)
-    if (jsonMatch) raw = jsonMatch[1]
-    const parsed = JSON.parse(raw.trim())
+    let parsed: any = {}
+    try {
+      const jsonMatch =
+        raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/) ||
+        raw.match(/```\s*([\s\S]*?)\s*```/) ||
+        raw.match(/^\s*(\{[\s\S]*\})\s*$/)
+      const jsonStr = jsonMatch ? jsonMatch[1] : raw
+      parsed = JSON.parse(jsonStr.trim())
+    } catch {
+      // AI 返回内容无法解析为 JSON，降级返回原始文本
+      return res.json(successResponse({
+        strategyName: r.name,
+        period,
+        periodReturn: pr,
+        annualReturn: r.annualReturn,
+        maxDrawdown: r.maxDrawdown,
+        winRate: r.winRate,
+        volatility: r.volatility,
+        sharpe: r.sharpe,
+        riskLevel: riskText,
+        analysis: raw.trim(),
+        summary: '（AI 返回格式异常，请重试）',
+        riskWarning: '以上内容仅供参考，不构成投资建议',
+      }, requestId))
+    }
 
     return res.json(successResponse({
       strategyName: r.name,
@@ -94,7 +116,7 @@ router.post('/api/attribution', async (req, res) => {
     if (err.message.includes('MODEL_API_URL or MODEL_API_KEY is missing')) {
       return res.status(503).json(errorResponse('AI 服务未配置，请联系管理员配置 MODEL_API_KEY', requestId))
     }
-    return res.status(500).json(errorResponse('归因分析失败：' + err.message, requestId))
+    return res.status(500).json(errorResponse('归因分析失败：' + (err.message || '未知错误'), requestId))
   }
 })
 
