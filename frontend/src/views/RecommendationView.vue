@@ -241,8 +241,16 @@
             </div>
           </div>
 
+          <!-- 生成模拟按钮 -->
+          <div class="simulate-cta" v-if="selected.length > 0 && weightValid">
+            <button class="simulate-btn" @click="calculate" :disabled="simulating">
+              <span v-if="!simulating">🚀 生成组合模拟</span>
+              <span v-else class="simulating-text"><span class="spin-ring-xs"></span> 模拟中...</span>
+            </button>
+          </div>
+
           <!-- 模拟结果 -->
-          <div v-if="weightValid" class="result-section card">
+          <div v-if="result" class="result-section card">
             <div class="section-eyebrow">Portfolio metrics</div>
             <h2 class="section-heading">组合模拟指标</h2>
 
@@ -342,7 +350,7 @@
           </div>
 
           <!-- 权重未达100%时提示 -->
-          <div v-else class="weight-warning card">
+          <div v-else-if="!weightValid" class="weight-warning card">
             <div class="warning-icon">⚠️</div>
             <div class="warning-text">
               总权重 <strong>{{ totalWeight }}%</strong>，需调整至 100% 即可查看模拟指标。
@@ -382,6 +390,7 @@ const activeCat = ref('')
 const result = ref<PortfolioResult | null>(null)
 const aiInterpretation = ref('')
 const aiLoading = ref(false)
+const simulating = ref(false)
 
 // AI 推荐状态
 const recResult = ref<any>(null)
@@ -570,10 +579,8 @@ function getColor(seed: number) {
 }
 
 async function calculate() {
-  if (!weightValid.value || selected.value.length === 0) {
-    result.value = null
-    return
-  }
+  if (!weightValid.value || selected.value.length === 0) return
+  simulating.value = true
   const payload: Allocation[] = selected.value.map(s => ({
     strategyId: String(s.seed),
     weight: allocations.value[s.seed] || 0,
@@ -582,10 +589,12 @@ async function calculate() {
     result.value = await simulatePortfolio(payload, 'inception')
   } catch {
     result.value = null
+  } finally {
+    simulating.value = false
   }
 }
 
-watch(allocations, () => { calculate() }, { deep: true })
+
 
 async function generateAIInterpretation() {
   if (!result.value || selected.value.length === 0) return
@@ -646,10 +655,10 @@ onMounted(async () => {
 .rec-header .page-lead { margin: 0; color: var(--muted); font-size: 14px; }
 
 /* 布局 */
-.rec-layout { display: grid; grid-template-columns: 300px 1fr; gap: 20px; padding: 0 16px; align-items: start; max-height: calc(100vh - 140px); overflow: hidden; }
+.rec-layout { display: grid; grid-template-columns: 300px 1fr; gap: 20px; padding: 0 16px; align-items: start; }
 
 /* 策略库 */
-.strategy-library { position: sticky; top: 80px; padding: 20px; display: flex; flex-direction: column; gap: 14px; max-height: calc(100vh - 160px); overflow: hidden; }
+.strategy-library { position: sticky; top: 80px; padding: 20px; display: flex; flex-direction: column; gap: 14px; max-height: calc(100vh - 160px); overflow-y: auto; }
 .lib-head { display: flex; justify-content: space-between; align-items: center; }
 .lib-count { font-size: 12px; color: var(--muted); }
 
@@ -782,6 +791,21 @@ onMounted(async () => {
 /* 颜色 */
 .gain { color: #c24a00 !important; }
 .loss { color: #b82020 !important; }
+
+/* ── 模拟生成按钮 ── */
+.simulate-cta {
+  display: flex; justify-content: center; padding: 4px 0 12px;
+}
+.simulate-btn {
+  padding: 12px 36px; border-radius: 14px; border: none;
+  background: linear-gradient(135deg,#9e722e,#c24a00); color: #fff;
+  font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+  box-shadow: 0 4px 16px rgba(158,114,46,0.25);
+}
+.simulate-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 22px rgba(158,114,46,0.35); }
+.simulate-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+.simulating-text { display: flex; align-items: center; gap: 8px; }
+.spin-ring-xs { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.9s linear infinite; }
 
 @media (max-width: 1100px) {
   .rec-layout { grid-template-columns: 1fr; padding: 0 16px; }
