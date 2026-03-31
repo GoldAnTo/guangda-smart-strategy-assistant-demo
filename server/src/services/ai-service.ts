@@ -1,4 +1,5 @@
 import 'dotenv/config'
+import axios from 'axios'
 
 function getModelConfig() {
   return {
@@ -28,6 +29,26 @@ function isAnthropicFormat(url: string): boolean {
   return url.includes('anthropic') || url.includes('minimaxi')
 }
 
+// axios 实例（支持代理），用于 OpenAI 格式请求
+const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY || ''
+function buildAxiosInstance() {
+  if (!proxyUrl) return axios.create({ timeout: 120000 })
+  try {
+    const u = new URL(proxyUrl)
+    return axios.create({
+      timeout: 120000,
+      proxy: {
+        host: u.hostname,
+        port: parseInt(u.port || '7897'),
+        protocol: u.protocol.replace(':', '')
+      }
+    })
+  } catch {
+    return axios.create({ timeout: 120000 })
+  }
+}
+const axiosInstance = buildAxiosInstance()
+
 async function requestModel(prompt: string, systemContent: string, temperature: number, maxTokens = 4000) {
   const { url, key, name } = getModelConfig()
 
@@ -35,9 +56,9 @@ async function requestModel(prompt: string, systemContent: string, temperature: 
     throw new Error('MODEL_API_URL or MODEL_API_KEY is missing')
   }
 
-  let response: Response
   if (isAnthropicFormat(url)) {
-    response = await fetchWithTimeout(
+    // Anthropic/MiniMax 格式（原生 fetch，无需代理）
+    const response = await fetchWithTimeout(
       url + '/messages',
       {
         method: 'POST',
@@ -56,35 +77,29 @@ async function requestModel(prompt: string, systemContent: string, temperature: 
       },
       120000
     )
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(`AI request failed: ${response.status} ${text.slice(0, 200)}`)
+    }
+    return response.json()
   } else {
-    response = await fetchWithTimeout(
-      url + '/chat/completions',
+    // OpenAI Responses API 格式（axios + 代理）
+    const response = await axiosInstance.post(
+      url + '/v1/responses',
       {
-        method: 'POST',
+        model: name,
+        input: (systemContent ? systemContent + '\n\n' : '') + prompt,
+        max_tokens: maxTokens
+      },
+      {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${key}`
-        },
-        body: JSON.stringify({
-          model: name,
-          messages: [
-            { role: 'system', content: systemContent },
-            { role: 'user', content: prompt }
-          ],
-          temperature,
-          max_tokens: maxTokens
-        })
-      },
-      120000
+        }
+      }
     )
+    return response.data
   }
-
-  if (!response.ok) {
-    const text = await response.text()
-    throw new Error(`AI request failed: ${response.status} ${text.slice(0, 200)}`)
-  }
-
-  return response.json()
 }
 
 const JSON_SYSTEM_PROMPT = 'You must output valid JSON only. Do not include markdown fences or extra commentary.'
@@ -108,6 +123,9 @@ function extractAnthropicContent(data: any): string {
 }
 
 function extractOpenAIContent(data: any): string {
+  // Responses API 格式
+  if (data.output) return data.output
+  // Chat Completions 兼容
   return data.choices?.[0]?.message?.content || ''
 }
 
