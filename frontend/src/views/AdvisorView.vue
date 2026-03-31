@@ -28,22 +28,6 @@
       <!-- ═══════════════════════════════ -->
       <aside class="profile-panel">
 
-        <!-- AI分析进度（实时显示） -->
-        <div class="ai-steps-panel" v-if="hasSearched">
-          <div class="asp-title">AI 分析过程</div>
-          <div class="asp-steps">
-            <div
-              v-for="(step, i) in aiSteps"
-              :key="i"
-              class="asp-step"
-              :class="{ done: step.done, active: step.active }"
-            >
-              <div class="asp-icon">{{ step.icon }}</div>
-              <div class="asp-text">{{ step.text }}</div>
-            </div>
-          </div>
-        </div>
-
         <!-- 画像表单 -->
         <div class="profile-card card">
           <div class="pc-head">
@@ -155,10 +139,26 @@
       <main class="result-panel">
 
         <!-- 空状态 -->
-        <div v-if="!hasSearched" class="empty-state card">
+        <div v-if="!hasSearched && !analyzing" class="empty-state card">
           <div class="empty-icon">🎯</div>
           <div class="empty-title">左侧填写客户画像</div>
           <div class="empty-sub">4项关键信息 → AI生成策略推荐</div>
+        </div>
+
+        <!-- AI分析过程（右侧，分析中显示） -->
+        <div class="ai-steps-panel" v-if="analyzing">
+          <div class="asp-title">AI 分析过程</div>
+          <div class="asp-steps">
+            <div
+              v-for="(step, i) in aiSteps"
+              :key="i"
+              class="asp-step"
+              :class="{ done: step.done, active: step.active }"
+            >
+              <div class="asp-icon">{{ step.icon }}</div>
+              <div class="asp-text">{{ step.text }}</div>
+            </div>
+          </div>
         </div>
 
         <!-- 转人工提示 -->
