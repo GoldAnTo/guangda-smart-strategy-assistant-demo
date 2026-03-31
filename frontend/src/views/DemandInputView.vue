@@ -81,6 +81,8 @@ function handleApplyScenario(scene: any) {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  height: 100%;
+  overflow-y: auto;
 }
 
 .demand-hero {

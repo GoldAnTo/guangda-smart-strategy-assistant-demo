@@ -600,7 +600,8 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  padding-bottom: 60px;
+  height: 100%;
+  overflow-y: auto;
 }
 
 /* Header */

@@ -647,7 +647,7 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.rec-page { display: flex; flex-direction: column; gap: 20px; padding-bottom: 60px; }
+.rec-page { display: flex; flex-direction: column; gap: 20px; height: 100%; overflow-y: auto; }
 
 /* 标题 */
 .rec-header { padding: 20px 16px 16px; border-bottom: 1px solid rgba(23,55,91,0.08); }

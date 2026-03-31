@@ -317,7 +317,7 @@ onMounted(loadStrategies)
 </script>
 
 <style scoped>
-.home-page { display: flex; flex-direction: column; gap: 0; min-height: calc(100vh - 88px); box-sizing: border-box; }
+.home-page { display: flex; flex-direction: column; gap: 0; height: 100%; overflow-y: auto; box-sizing: border-box; }
 
 /* 顶部 */
 .home-header { display: flex; justify-content: space-between; align-items: flex-end; padding: 20px 16px 16px; gap: 24px; flex-wrap: wrap; border-bottom: 1px solid rgba(23,55,91,0.08); }

@@ -310,7 +310,7 @@ onMounted(loadStrategies)
 </script>
 
 <style scoped>
-.catalog-page { max-width: 1400px; margin: 0 auto; padding: 0 0 32px; }
+.catalog-page { max-width: 1400px; margin: 0 auto; height: 100%; overflow-y: auto; padding: 0; }
 
 /* ── 顶部标题区 ── */
 .catalog-header { padding: 20px 16px 16px; border-bottom: 1px solid rgba(23,55,91,0.08); }
