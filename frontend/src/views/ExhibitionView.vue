@@ -335,13 +335,9 @@ async function fetchTS(seed: number, period: string) {
 
     if (raw.length > 1) {
       // 有真实数据：用真实数据
-      const bmData = raw.map((p: any, i: number) => ({
-        date: p.date,
-        ret: (4.5 / 365 * i) + (Math.random() - 0.5) * 0.3,
-      }))
       tsCache[key] = {
         strategy: raw.map((p: any) => ({ date: p.date, ret: p.ret ?? 0 })),
-        benchmark: bmData,
+        benchmark: raw.map((p: any) => ({ date: p.date, ret: p.benchmark ?? 0 })),
       }
     } else {
       // API 无数据：生成真实感模拟数据

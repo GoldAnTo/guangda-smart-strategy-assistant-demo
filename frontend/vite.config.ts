@@ -9,12 +9,16 @@ export default defineConfig({
     allowedHosts: [
       'pursuant-happy-static-characteristics.trycloudflare.com',
       '.trycloudflare.com'
-    ]
-  },
-  proxy: {
-    '^/': {
-      target: 'http://localhost:3001',
-      changeOrigin: true
+    ],
+    proxy: {
+      '/strategies': {
+        target: 'http://localhost:3003',
+        changeOrigin: true,
+      },
+      '/api': {
+        target: 'http://localhost:3002',
+        changeOrigin: true,
+      }
     }
   }
 })
