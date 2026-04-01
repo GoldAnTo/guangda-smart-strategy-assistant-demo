@@ -133,7 +133,11 @@ export const aiService = {
   async generateJson(prompt: string): Promise<string> {
     const { url } = getModelConfig()
     for (let attempt = 0; attempt < 2; attempt++) {
-      const data = await requestModel(prompt, JSON_SYSTEM_PROMPT, 0.2, 2000)
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('AI请求超时（10s）')), 10000)
+      )
+      const requestPromise = requestModel(prompt, JSON_SYSTEM_PROMPT, 0.2, 2000)
+      const data = await Promise.race([requestPromise, timeoutPromise])
       const content = isAnthropicFormat(url || '')
         ? extractAnthropicContent(data)
         : extractOpenAIContent(data)
@@ -151,7 +155,12 @@ export const aiService = {
 
   async generateText(prompt: string): Promise<string> {
     const { url } = getModelConfig()
-    const data = await requestModel(prompt, CHAT_SYSTEM_PROMPT, 0.3, 4000)
+    // 硬超时10秒，防止代理无限等待
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('AI请求超时（10s），请重试')), 10000)
+    )
+    const requestPromise = requestModel(prompt, CHAT_SYSTEM_PROMPT, 0.3, 4000)
+    const data = await Promise.race([requestPromise, timeoutPromise])
     return isAnthropicFormat(url || '')
       ? extractAnthropicContent(data)
       : extractOpenAIContent(data)

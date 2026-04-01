@@ -60,6 +60,7 @@ router.post('/api/attribution', async (req, res) => {
 
     const r = strategy
     const pr = periodReturn ?? r.annualReturn
+    const volatilityValue = r.volatilityValue ?? (typeof r.volatility === 'number' ? r.volatility : 0)
 
     const riskMap: Record<string, string> = {
       R1: '低风险', R2: '中低风险', R3: '中等风险', R4: '中高风险', R5: '高风险'
@@ -73,12 +74,12 @@ router.post('/api/attribution', async (req, res) => {
 - 策略名称：${r.name}
 - 资产类别：${r.navCategory}
 - 风险等级：${riskText}
-- 投资期限：${r.investmentHorizon}
+- 投资期限：${r.investmentHorizon || '中期'}
 - 近${period}收益：${pr >= 0 ? '+' : ''}${pr.toFixed(2)}%
 - 年化收益率：${r.annualReturn >= 0 ? '+' : ''}${r.annualReturn.toFixed(2)}%
-- 胜率（正收益月份占比）：${r.winRate?.toFixed(0) ?? '—'}%
+- 胜率（正收益月份占比）：${r.winRate != null ? r.winRate.toFixed(0) + '%' : '—'}
 - 最大回撤（历史最大跌幅）：${r.maxDrawdown != null ? '-' + r.maxDrawdown.toFixed(2) + '%' : '—'}
-- 波动率：${r.volatility != null ? r.volatility.toFixed(2) + '%' : '—'}
+- 波动率：${volatilityValue > 0 ? volatilityValue.toFixed(2) + '%' : '—'}
 - 夏普比率：${r.sharpe != null ? r.sharpe.toFixed(2) : '—'}
 - 核心策略逻辑：${r.logicSummary || '暂无说明'}
 - 策略标签：${(r.tags || []).join('、')}
@@ -95,7 +96,28 @@ router.post('/api/attribution', async (req, res) => {
 }
 `
 
-    const raw = await aiService.generateText(prompt)
+    let raw = ''
+    try {
+      raw = await aiService.generateText(prompt)
+    } catch (aiErr: any) {
+      const data = {
+        strategyName: r.name,
+        period,
+        periodReturn: pr,
+        annualReturn: r.annualReturn,
+        maxDrawdown: r.maxDrawdown,
+        winRate: r.winRate,
+        volatility: volatilityValue,
+        sharpe: r.sharpe,
+        riskLevel: riskText,
+        analysis: aiErr.message?.includes('超时') ? '（AI 分析暂时不可用，请稍后重试）' : '（归因分析暂时不可用）',
+        summary: '（AI 服务暂时不可用）',
+        riskWarning: '以上内容仅供参考，不构成投资建议',
+      }
+      res.setHeader('Content-Type', 'application/json; charset=utf-8')
+      res.send(JSON.stringify(successResponse(data, requestId)))
+      return
+    }
 
     let parsed: any = {}
     try {
@@ -113,7 +135,7 @@ router.post('/api/attribution', async (req, res) => {
         annualReturn: r.annualReturn,
         maxDrawdown: r.maxDrawdown,
         winRate: r.winRate,
-        volatility: r.volatility,
+        volatility: volatilityValue,
         sharpe: r.sharpe,
         riskLevel: riskText,
         analysis: raw.trim(),
@@ -132,7 +154,7 @@ router.post('/api/attribution', async (req, res) => {
       annualReturn: r.annualReturn,
       maxDrawdown: r.maxDrawdown,
       winRate: r.winRate,
-      volatility: r.volatility,
+      volatility: volatilityValue,
       sharpe: r.sharpe,
       riskLevel: riskText,
       ...parsed,

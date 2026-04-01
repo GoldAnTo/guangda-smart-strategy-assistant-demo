@@ -1,4 +1,6 @@
 import { Router } from 'express'
+import { aiService } from '../services/ai-service'
+import { errorResponse } from '../utils/response'
 import { successResponse } from '../utils/response'
 import * as fs from 'fs'
 import * as path from 'path'
@@ -126,6 +128,60 @@ function deriveAnnualReturn(ts: TimeSeriesPoint[]): number {
 
 // Default correlation between strategies for portfolio combination
 const STRATEGY_CORRELATION = 0.30
+
+// POST /api/portfolio-narrative — 组合分析 AI 解读
+
+router.post('/api/portfolio-narrative', async (req, res) => {
+  const requestId = res.locals.requestId
+  try {
+    const { components, portfolioReturn, portfolioMaxDrawdown, portfolioSharpe } = req.body as {
+      components: any[]
+      portfolioReturn?: number
+      portfolioMaxDrawdown?: number
+      portfolioSharpe?: number
+    }
+    if (!components?.length) {
+      return res.status(400).json(errorResponse('components 不能为空', requestId))
+    }
+    const compText = components.map((c: any, i: number) =>
+      `子策略${i + 1} ${c.name}（${c.navCategory}）：权重${c.weight}%，年化收益${c.annualReturn >= 0 ? '+' : ''}${c.annualReturn?.toFixed?.(2) ?? '0'}%，最大回撤${c.maxDrawdown?.toFixed?.(2) ?? '0'}%，波动率${c.volatility?.toFixed?.(2) ?? '0'}%。`
+    ).join('\n')
+    const prompt = `
+你是光大资管的高级投资顾问。请根据以下组合持仓信息，生成一段专业的组合分析解读。
+
+【组合概况】
+- 组合年化收益率：${portfolioReturn >= 0 ? '+' : ''}${(portfolioReturn ?? 0).toFixed(2)}%
+- 组合最大回撤：-${(portfolioMaxDrawdown ?? 0).toFixed(2)}%
+- 组合夏普比率：${(portfolioSharpe ?? 0).toFixed(2)}
+- 子策略数量：${components.length}
+
+【子策略详情】
+${compText}
+
+【生成要求】
+请生成一段**不少于600字**的组合分析解读，包含：
+1. 组合整体表现评价（收益、风险、风险调整收益）
+2. 各子策略的贡献和特点分析
+3. 组合配置的合理性和互补性
+4. 风险提示
+5. 配置建议
+
+语言风格：专业、详尽、通俗。直接输出正文，不使用markdown格式。
+`
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+    try {
+      const text = await aiService.generateText(prompt)
+      res.write(text)
+      res.end()
+    } catch {
+      res.write('（AI 组合解读暂时不可用，请稍后重试）')
+      res.end()
+    }
+  } catch (err: any) {
+    console.error(`[${requestId}] portfolio-narrative error:`, err.message)
+    res.status(500).json(errorResponse('组合解读生成失败', requestId))
+  }
+})
 
 // POST /portfolio/simulate
 router.post('/portfolio/simulate', (req, res) => {
