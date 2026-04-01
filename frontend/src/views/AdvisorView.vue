@@ -659,13 +659,23 @@ async function handleAnalyze() {
 
   try {
     const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003'
-    const resp = await fetch(`${base}/api/recommend`, {
+    const resp = await fetch(`${base}/api/match-products`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form.value),
+      body: JSON.stringify({ profile: form.value }),
     })
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
     const data = await resp.json()
-    result.value = data.data || data
+    const unwrapped = data.data || data
+    // 映射 match-products → AdvisorView 期望的字段
+    result.value = {
+      recommendations: (unwrapped.recommended || []).map((p: any) => ({
+        strategy: p,
+        matchScore: p.matchScore,
+        matchReasons: p.matchReasons,
+      })),
+      shouldEscalate: unwrapped.shouldEscalate,
+    }
     // Auto-load narrative for top strategies
     if (result.value?.recommendations?.length && !result.value.shouldEscalate) {
       await regenerateNarrative()
@@ -693,10 +703,16 @@ async function regenerateNarrative() {
     const resp = await fetch(`${base}/api/recommend-narrative`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ strategies }),
+      body: JSON.stringify({
+        strategies,
+        returnTarget: form.value.returnExpectation || 'moderate',
+        riskLevel: form.value.riskLevel || 'R3'
+      }),
     })
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
     const data = await resp.json()
-    narrative.value = (data.data || data).narrative || '（暂无法生成分析）'
+    const text = data.data?.narrative || data.narrative || data
+    narrative.value = typeof text === 'string' ? text : '（暂无法生成分析）'
   } catch {
     narrative.value = '（AI 分析暂时不可用）'
   } finally {

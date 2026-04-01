@@ -1,8 +1,62 @@
 import { Router } from 'express'
 import { aiService } from '../services/ai-service'
 import { successResponse, errorResponse } from '../utils/response'
+import { readFileSync } from 'fs'
+import { fileURLToPath } from 'url'
+import path from 'path'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
+// 加载策略数据（带完整财务指标）
+const strategiesData: { strategies: any[] } = JSON.parse(
+  readFileSync(path.join(__dirname, '..', 'data', 'strategies-enhanced.json'), 'utf-8')
+)
+
+// 客户画像 riskLevel → 策略风险等级映射
+const riskLevelMap: Record<string, string[]> = {
+  conservative: ['R1', 'R2'],
+  stable: ['R2', 'R3'],
+  balanced: ['R3', 'R4'],
+  growth: ['R4', 'R5'],
+  highRisk: ['R5']
+}
+
+function matchStrategies(profile: any, topN = 3): any[] {
+  const allowedRiskLevels = riskLevelMap[profile.riskLevel] || ['R2', 'R3', 'R4']
+  const matched = strategiesData.strategies.filter(s => {
+    if (!allowedRiskLevels.includes(s.riskLevel)) return false
+    if (s.investmentHorizon === 'short_term' && profile.investmentHorizon === 'long_term') return false
+    if (s.investmentHorizon === 'long_term' && profile.investmentHorizon === 'short_term') return false
+    return true
+  })
+  matched.sort((a, b) => (b.annualReturn || 0) - (a.annualReturn || 0))
+  return matched.slice(0, topN)
+}
 
 const router = Router()
+
+// POST /api/recommend — 根据客户画像返回策略推荐
+router.post('/api/recommend', async (req, res) => {
+  const requestId = res.locals.requestId
+  try {
+    const profile = req.body
+    if (!profile) {
+      return res.status(400).json(errorResponse('missing profile', requestId))
+    }
+    const strategies = matchStrategies(profile)
+    const recommendations = strategies.map((s, i) => ({
+      strategy: s,
+      matchScore: Math.round(100 - i * 8),
+      matchReasons: ['风险等级匹配', '收益表现优异'].slice(0, i + 1),
+      priority: i === 0 ? 'primary' : i === 1 ? 'alternative' : 'backup'
+    }))
+    res.json(successResponse({ recommendations, shouldEscalate: false }, requestId))
+  } catch (err: any) {
+    console.error(`[${requestId}] recommend error:`, err)
+    res.status(500).json(errorResponse('推荐失败', requestId))
+  }
+})
 
 function generateTemplateNarrative(strategies: any[], returnTarget: string, riskLevel: string): string {
   if (!strategies?.length) return '暂无策略信息'
@@ -73,7 +127,6 @@ router.post('/api/recommend-narrative', async (req, res) => {
     }
 
     const s = strategies[0]
-    // 安全解析 tags 字段（可能是数组或逗号分隔的字符串）
     const safeTags = (tags: any): string => {
       if (!tags) return '暂无';
       if (Array.isArray(tags)) return tags.join('、');
@@ -126,7 +179,7 @@ ${alternativesText}
 详细说明最大回撤的实际含义（以100万举例），波动率对净值可能的影响，以及历史业绩与未来表现的关系。不要回避风险，要专业且通俗地解释。
 
 五、适配人群
-明确说明适合哪类投资者（资金规模、风险偏好、投资期限），同时说明不适合哪类投资者。
+明确说明适合哪类投资者（资金规模、风险偏好，投资期限），同时说明不适合哪类投资者。
 
 六、配置比例与持有建议
 给出具体配置比例范围（首期建议、动态调整区间），以及持有期限建议、什么时候需要关注、什么时候建议调整。
@@ -148,7 +201,6 @@ ${alternativesText}
       res.write(text)
       res.end()
     } catch (aiErr: any) {
-      // AI 调用失败时，用高质量模板替代
       const fallback = generateTemplateNarrative(strategies, returnTarget || '', riskLevel || '')
       res.write(fallback)
       res.end()
