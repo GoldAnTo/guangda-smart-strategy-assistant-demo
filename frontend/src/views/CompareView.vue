@@ -6,7 +6,7 @@
       <div class="header-left">
         <div class="eyebrow">Product shelf analysis</div>
         <h1>产品线诊断台</h1>
-        <p class="page-lead">从产品地图发现结构空白 · AI驱动的组合诊断</p>
+        <p class="page-lead">从产品地图发现结构空白 · 智能组合诊断</p>
       </div>
       <div class="mode-tabs">
         <button
@@ -50,7 +50,7 @@
             </div>
           </div>
           <div v-if="selectedIds.length === 0" class="pick-empty">
-            在右侧 AI 诊断区生成组合建议后，选入策略将显示在此
+            在右侧 AI 诊断区生成组合方案后，选入策略将显示于此
           </div>
         </div>
       </aside>
@@ -134,176 +134,192 @@
 
         <!-- 模式二：AI组合诊断 -->
         <template v-if="activeMode === 'ai'">
-          <!-- 客户画像筛选 + AI按钮 -->
-          <section class="result-section card ai-filter-card">
-            <div class="section-eyebrow">Client profile</div>
-            <h2 class="section-heading">AI 组合诊断</h2>
+          <!-- 左右两栏布局：左侧客户画像+入选策略 / 右侧AI组合诊断结果 -->
+          <div class="ai-two-col">
+            <!-- 左列：客户画像 + 入选策略（上下堆叠） -->
+            <div class="ai-left-col">
+              <!-- 客户画像筛选 + AI按钮 -->
+              <section class="result-section card ai-filter-card">
+                <div class="section-eyebrow">Client profile</div>
+                <h2 class="section-heading">AI 组合诊断</h2>
 
-            <div class="ai-filter-row">
-              <div class="filter-group">
-                <div class="filter-label">风险偏好</div>
-                <div class="risk-options">
-                  <button
-                    v-for="r in riskOptions"
-                    :key="r.value"
-                    class="risk-opt"
-                    :class="{ active: clientProfile.risk === r.value }"
-                    @click="clientProfile.risk = r.value"
+                <div class="ai-filter-row">
+                  <div class="filter-group">
+                    <div class="filter-label">风险偏好</div>
+                    <div class="risk-options">
+                      <button
+                        v-for="r in riskOptions"
+                        :key="r.value"
+                        class="risk-opt"
+                        :class="{ active: clientProfile.risk === r.value }"
+                        @click="clientProfile.risk = r.value"
+                      >
+                        <span class="risk-dot" :style="{ background: r.color }"></span>
+                        {{ r.label }}
+                      </button>
+                    </div>
+                  </div>
+                  <div class="filter-group">
+                    <div class="filter-label">收益目标</div>
+                    <div class="return-options">
+                      <button
+                        v-for="r in returnOptions"
+                        :key="r.value"
+                        class="ret-opt"
+                        :class="{ active: clientProfile.returnTarget === r.value }"
+                        @click="clientProfile.returnTarget = r.value"
+                      >
+                        {{ r.label }}
+                      </button>
+                    </div>
+                  </div>
+                  <div class="filter-group">
+                    <div class="filter-label">资金规模</div>
+                    <div class="return-options">
+                      <button
+                        v-for="s in scaleOptions"
+                        :key="s.value"
+                        class="ret-opt"
+                        :class="{ active: clientProfile.scale === s.value }"
+                        @click="clientProfile.scale = s.value"
+                      >
+                        {{ s.label }}
+                      </button>
+                    </div>
+                  </div>
+                  <div class="ai-diagnosis-section">
+                    <button class="ai-diagnosis-btn" @click="runAiDiagnosis" :disabled="aiLoading">
+                      <span class="ai-icon" :class="{ spinning: aiLoading }">🧠</span>
+                      <div class="ai-btn-text">
+                        <div class="ai-btn-title">{{ aiLoading ? 'AI 诊断中...' : '生成组合配置方案' }}</div>
+                        <div class="ai-btn-sub">基于 {{ filteredStrategies.length }} 条策略分析</div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </section>
+
+              <!-- 入选策略详情 -->
+              <section v-if="selectedStrategies.length > 0" class="result-section card">
+                <div class="section-eyebrow">Selected strategies</div>
+                <h2 class="section-heading">入选策略详情</h2>
+                <div class="selected-detail-grid">
+                  <div v-for="s in selectedStrategies" :key="s.seed" class="selected-detail-card">
+                    <div class="sdc-header">
+                      <div class="sdc-cat">{{ s.navCategory }}</div>
+                      <div class="risk-badge" :class="'risk-' + ((s as any).riskLevel || 'R3')">
+                        {{ ((s as any).riskLevel || 'R3') }}
+                      </div>
+                    </div>
+                    <div class="sdc-name">{{ s.name }}</div>
+                    <div class="sdc-owner">{{ s.owner }}</div>
+                    <div class="sdc-metrics">
+                      <div class="sdc-m">
+                        <div class="sdc-mv" :class="s.annualReturn >= 0 ? 'gain' : 'loss'">{{ fmt(s.annualReturn) }}%</div>
+                        <div class="sdc-ml">年化</div>
+                      </div>
+                      <div class="sdc-m">
+                        <div class="sdc-mv">{{ fmt(s.winRate, 1, false) }}%</div>
+                        <div class="sdc-ml">胜率</div>
+                      </div>
+                      <div class="sdc-m">
+                        <div class="sdc-mv loss">{{ fmt(s.maxDrawdown, 1, false) }}%</div>
+                        <div class="sdc-ml">回撤</div>
+                      </div>
+                    </div>
+                    <div class="sdc-logic">{{ s.logicSummary }}</div>
+                    <div class="sdc-tags">
+                      <span v-for="tag in (s.tags || []).slice(0, 3)" :key="tag" class="card-tag">{{ tag }}</span>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <!-- 右列：AI 组合诊断结果 -->
+            <div class="ai-result-col">
+              <section v-if="aiResult" class="result-section card ai-result-card">
+                <div class="ai-result-header">
+                  <div class="section-eyebrow">AI Diagnosis · Generated {{ new Date().toLocaleDateString('zh-CN') }}</div>
+                  <button class="regenerate-btn" @click="runAiDiagnosis" :disabled="aiLoading">🔄 重新生成方案</button>
+                </div>
+                <h2 class="section-heading">组合诊断报告</h2>
+
+                <div class="diag-summary">
+                  <div class="diag-tag">{{ aiResult.riskLevel }}</div>
+                  <div class="diag-tag">{{ aiResult.scale }}</div>
+                  <div class="diag-tag gain-tag">{{ aiResult.expectedReturn }}</div>
+                </div>
+
+                <div class="diag-triad">
+                  <div
+                    v-for="layer in aiResult.layers"
+                    :key="layer.name"
+                    class="diag-layer"
+                    :style="{ borderColor: layer.color + '44' }"
                   >
-                    <span class="risk-dot" :style="{ background: r.color }"></span>
-                    {{ r.label }}
-                  </button>
-                </div>
-              </div>
-              <div class="filter-group">
-                <div class="filter-label">收益目标</div>
-                <div class="return-options">
-                  <button
-                    v-for="r in returnOptions"
-                    :key="r.value"
-                    class="ret-opt"
-                    :class="{ active: clientProfile.returnTarget === r.value }"
-                    @click="clientProfile.returnTarget = r.value"
-                  >
-                    {{ r.label }}
-                  </button>
-                </div>
-              </div>
-              <div class="filter-group">
-                <div class="filter-label">资金规模</div>
-                <div class="return-options">
-                  <button
-                    v-for="s in scaleOptions"
-                    :key="s.value"
-                    class="ret-opt"
-                    :class="{ active: clientProfile.scale === s.value }"
-                    @click="clientProfile.scale = s.value"
-                  >
-                    {{ s.label }}
-                  </button>
-                </div>
-              </div>
-              <div class="ai-diagnosis-section">
-                <button class="ai-diagnosis-btn" @click="runAiDiagnosis" :disabled="aiLoading">
-                  <span class="ai-icon" :class="{ spinning: aiLoading }">🧠</span>
-                  <div class="ai-btn-text">
-                    <div class="ai-btn-title">{{ aiLoading ? 'AI 诊断中...' : '生成 AI 组合建议' }}</div>
-                    <div class="ai-btn-sub">基于 {{ filteredStrategies.length }} 条策略分析</div>
-                  </div>
-                </button>
-              </div>
-            </div>
-          </section>
-
-          <section v-if="aiResult" class="result-section card ai-result-card">
-            <div class="ai-result-header">
-              <div class="section-eyebrow">AI Diagnosis · Generated {{ new Date().toLocaleDateString('zh-CN') }}</div>
-              <button class="regenerate-btn" @click="runAiDiagnosis" :disabled="aiLoading">🔄 重新生成</button>
-            </div>
-            <h2 class="section-heading">组合诊断报告</h2>
-
-            <div class="diag-summary">
-              <div class="diag-tag">{{ aiResult.riskLevel }}</div>
-              <div class="diag-tag">{{ aiResult.scale }}</div>
-              <div class="diag-tag gain-tag">{{ aiResult.expectedReturn }}</div>
-            </div>
-
-            <div class="diag-triad">
-              <div
-                v-for="layer in aiResult.layers"
-                :key="layer.name"
-                class="diag-layer"
-                :style="{ borderColor: layer.color + '44' }"
-              >
-                <div class="layer-header">
-                  <div class="layer-icon">{{ layer.icon }}</div>
-                  <div class="layer-name">{{ layer.name }}</div>
-                  <div class="layer-alloc">{{ layer.allocation }}</div>
-                </div>
-                <div class="layer-strategy">{{ layer.strategyName }}</div>
-                <div class="layer-role">{{ layer.role }}</div>
-                <div class="layer-metrics">
-                  <span class="lm gain">年化 {{ layer.annualReturn }}</span>
-                  <span class="lm">回撤 {{ layer.drawdown }}</span>
-                  <span class="lm">胜率 {{ layer.winRate }}</span>
-                </div>
-                <div class="layer-reason">{{ layer.reason }}</div>
-              </div>
-            </div>
-
-            <div class="portfolio-metrics">
-              <div class="pm-item">
-                <div class="pm-val gain">{{ aiResult.portfolioReturn }}</div>
-                <div class="pm-label">组合预期年化</div>
-              </div>
-              <div class="pm-divider"></div>
-              <div class="pm-item">
-                <div class="pm-val loss">{{ aiResult.portfolioDrawdown }}</div>
-                <div class="pm-label">组合最大回撤</div>
-              </div>
-              <div class="pm-divider"></div>
-              <div class="pm-item">
-                <div class="pm-val">{{ aiResult.sharpeRatio }}</div>
-                <div class="pm-label">夏普比率</div>
-              </div>
-              <div class="pm-divider"></div>
-              <div class="pm-item">
-                <div class="pm-val">{{ aiResult.coverage }}</div>
-                <div class="pm-label">风险分散度</div>
-              </div>
-            </div>
-
-            <div class="synergy-section">
-              <div class="section-eyebrow" style="margin-bottom: 12px;">协同逻辑</div>
-              <div class="synergy-body">{{ aiResult.synergyLogic }}</div>
-            </div>
-          </section>
-
-          <section v-else class="result-section card ai-empty-card">
-            <div class="ai-empty-icon">🧠</div>
-            <div class="ai-empty-title">AI 组合诊断</div>
-            <div class="ai-empty-sub">根据左侧客户画像，点击上方「生成 AI 组合建议」按钮，AI 将基于策略自动构建最优组合方案</div>
-            <div class="ai-empty-steps">
-              <div class="ai-step"><span class="step-num">1</span>设置风险偏好与收益目标</div>
-              <div class="ai-step"><span class="step-num">2</span>AI 扫描全产品线</div>
-              <div class="ai-step"><span class="step-num">3</span>输出攻守兼备的组合方案</div>
-            </div>
-          </section>
-
-          <section v-if="selectedStrategies.length > 0" class="result-section card">
-            <div class="section-eyebrow">Selected strategies</div>
-            <h2 class="section-heading">入选策略详情</h2>
-            <div class="selected-detail-grid">
-              <div v-for="s in selectedStrategies" :key="s.seed" class="selected-detail-card">
-                <div class="sdc-header">
-                  <div class="sdc-cat">{{ s.navCategory }}</div>
-                  <div class="risk-badge" :class="'risk-' + ((s as any).riskLevel || 'R3')">
-                    {{ ((s as any).riskLevel || 'R3') }}
+                    <div class="layer-header">
+                      <div class="layer-icon">{{ layer.icon }}</div>
+                      <div class="layer-name">{{ layer.name }}</div>
+                      <div class="layer-alloc">{{ layer.allocation }}</div>
+                    </div>
+                    <div class="layer-strategy">{{ layer.strategyName }}</div>
+                    <div class="layer-role">{{ layer.role }}</div>
+                    <div class="layer-metrics">
+                      <span class="lm gain">年化 {{ layer.annualReturn }}</span>
+                      <span class="lm">回撤 {{ layer.drawdown }}</span>
+                      <span class="lm">胜率 {{ layer.winRate }}</span>
+                    </div>
+                    <div class="layer-reason">{{ layer.reason }}</div>
                   </div>
                 </div>
-                <div class="sdc-name">{{ s.name }}</div>
-                <div class="sdc-owner">{{ s.owner }}</div>
-                <div class="sdc-metrics">
-                  <div class="sdc-m">
-                    <div class="sdc-mv" :class="s.annualReturn >= 0 ? 'gain' : 'loss'">{{ fmt(s.annualReturn) }}%</div>
-                    <div class="sdc-ml">年化</div>
+
+                <div class="portfolio-metrics">
+                  <div class="pm-item">
+                    <div class="pm-val gain">{{ aiResult.portfolioReturn }}</div>
+                    <div class="pm-label">组合预期年化收益率</div>
                   </div>
-                  <div class="sdc-m">
-                    <div class="sdc-mv">{{ fmt(s.winRate, 1, false) }}%</div>
-                    <div class="sdc-ml">胜率</div>
+                  <div class="pm-divider"></div>
+                  <div class="pm-item">
+                    <div class="pm-val loss">{{ aiResult.portfolioDrawdown }}</div>
+                    <div class="pm-label">组合最大回撤率</div>
                   </div>
-                  <div class="sdc-m">
-                    <div class="sdc-mv loss">{{ fmt(s.maxDrawdown, 1, false) }}%</div>
-                    <div class="sdc-ml">回撤</div>
+                  <div class="pm-divider"></div>
+                  <div class="pm-item">
+                    <div class="pm-val">{{ aiResult.sharpeRatio }}</div>
+                    <div class="pm-label">夏普比率</div>
+                  </div>
+                  <div class="pm-divider"></div>
+                  <div class="pm-item">
+                    <div class="pm-val">{{ aiResult.coverage }}</div>
+                    <div class="pm-label">风险分散指数</div>
                   </div>
                 </div>
-                <div class="sdc-logic">{{ s.logicSummary }}</div>
-                <div class="sdc-tags">
-                  <span v-for="tag in (s.tags || []).slice(0, 3)" :key="tag" class="card-tag">{{ tag }}</span>
+
+                <div class="synergy-section">
+                  <div class="section-eyebrow" style="margin-bottom: 12px;">协同逻辑</div>
+                  <div class="synergy-body">{{ aiResult.synergyLogic }}</div>
                 </div>
-              </div>
+              </section>
+
+              <section v-else-if="aiLoading" class="result-section card ai-loading-card">
+                <div class="ai-empty-icon spinning">🧠</div>
+                <div class="ai-empty-title">AI 诊断中...</div>
+                <div class="ai-empty-sub">正在分析策略数据，构建适配组合方案，请稍候</div>
+              </section>
+
+              <section v-else class="result-section card ai-empty-card">
+                <div class="ai-empty-icon">🧠</div>
+                <div class="ai-empty-title">AI 组合诊断</div>
+                <div class="ai-empty-sub">根据左侧客户画像，点击「生成组合配置方案」按钮，系统将结合客户风险偏好与策略特征输出适配组合方案</div>
+                <div class="ai-empty-steps">
+                  <div class="ai-step"><span class="step-num">1</span>设置风险偏好与收益目标</div>
+                  <div class="ai-step"><span class="step-num">2</span>AI 扫描全产品线</div>
+                  <div class="ai-step"><span class="step-num">3</span>输出攻守兼备的组合方案</div>
+                </div>
+              </section>
             </div>
-          </section>
+          </div>
         </template>
 
         <!-- 模式三：持仓组合分析 -->
@@ -389,24 +405,24 @@
                   <div class="port-m-grid">
                     <div class="port-m-item">
                       <div class="pmi-val gain">{{ portfolioMetrics.return }}</div>
-                      <div class="pmi-label">加权年化收益</div>
+                      <div class="pmi-label">估算组合年化收益率</div>
                     </div>
                     <div class="port-m-item">
                       <div class="pmi-val loss">{{ portfolioMetrics.drawdown }}</div>
-                      <div class="pmi-label">加权最大回撤</div>
+                      <div class="pmi-label">估算组合最大回撤率</div>
                     </div>
                     <div class="port-m-item">
                       <div class="pmi-val">{{ portfolioMetrics.sharpe }}</div>
-                      <div class="pmi-label">加权夏普比率</div>
+                      <div class="pmi-label">估算组合夏普比率</div>
                     </div>
                     <div class="port-m-item">
                       <div class="pmi-val">{{ portfolioMetrics.coverage }}</div>
-                      <div class="pmi-label">风险分散度</div>
+                      <div class="pmi-label">风险分散指数</div>
                     </div>
                   </div>
 
                   <div class="coverage-bar-wrap">
-                    <div class="cbw-label">风险分散效果</div>
+                    <div class="cbw-label">风险分散指数</div>
                     <div class="cbw-track">
                       <div class="cbw-fill" :style="{ width: coveragePct + '%', background: coverageColor }"></div>
                     </div>
@@ -418,7 +434,7 @@
                     <div class="algo-title">📐 指标计算公式</div>
                     <div class="algo-formula">
                       <div class="af-row">
-                        <div class="af-name">加权年化收益</div>
+                        <div class="af-name">估算组合年化收益率</div>
                         <div class="af-formula">Σ(策略i权重 × 策略i年化收益率)</div>
                       </div>
                       <div class="af-example" v-if="portfolioStrategies.length">
@@ -431,7 +447,7 @@
                     </div>
                     <div class="algo-formula">
                       <div class="af-row">
-                        <div class="af-name">加权最大回撤</div>
+                        <div class="af-name">估算组合最大回撤率</div>
                         <div class="af-formula">Σ(策略i权重 × 策略i最大回撤)</div>
                       </div>
                       <div class="af-example" v-if="portfolioStrategies.length">
@@ -533,14 +549,14 @@ const riskOptions = [
   { value: 'R5', label: '激进型', color: '#f87171' },
 ]
 const returnOptions = [
-  { value: 'stable', label: '5%以下' },
-  { value: 'moderate', label: '5%-10%' },
-  { value: 'aggressive', label: '10%以上' },
+  { value: 'stable', label: '年化5%以下' },
+  { value: 'moderate', label: '年化5%-10%' },
+  { value: 'aggressive', label: '年化10%以上' },
 ]
 const scaleOptions = [
-  { value: 'small', label: '1000万以下' },
-  { value: 'medium', label: '1000-5000万' },
-  { value: 'large', label: '5000万以上' },
+  { value: 'small', label: '1000万元人民币以下' },
+  { value: 'medium', label: '1000万-5000万元' },
+  { value: 'large', label: '5000万元人民币以上' },
 ]
 
 // ═══════════════ 数据 ═══════════════
@@ -740,13 +756,13 @@ async function runAiDiagnosis() {
   selectedIds.value = picked.map(s => s.seed)
 
   const riskLabel = { R3: '稳健型 (R3)', R4: '积极型 (R4)', R5: '激进型 (R5)' }[clientProfile.value.risk] || 'R3'
-  const scaleLabel = { small: '小额客户（千万以下）', medium: '中额客户（千万级）', large: '大额客户（亿级）' }[clientProfile.value.scale]
-  const returnLabel = { stable: '5%以下稳定收益', moderate: '5%-10%均衡收益', aggressive: '10%以上进取收益' }[clientProfile.value.returnTarget]
+  const scaleLabel = { small: '小额客户（千万元以下）', medium: '中额客户（千万元级）', large: '大额客户（亿元级）' }[clientProfile.value.scale]
+  const returnLabel = { stable: '年化5%以下', moderate: '年化5%-10%', aggressive: '年化10%以上' }[clientProfile.value.returnTarget]
 
   const layers = [
-    { name: '进攻层', icon: '⚡', color: '#d0680a', allocation: picked.length >= 2 ? '40%' : '—', strategyName: picked[0]?.name || '—', role: '收益贡献核心', annualReturn: picked[0] ? `${picked[0].annualReturn >= 0 ? '+' : ''}${picked[0].annualReturn.toFixed(2)}%` : '—', drawdown: picked[0] ? `${picked[0].maxDrawdown?.toFixed(1) || '—'}%` : '—', winRate: picked[0] ? `${picked[0].winRate.toFixed(0)}%` : '—', reason: `高风险高回报定位，在组合中承担收益弹性职能。` },
-    { name: '防御层', icon: '🛡️', color: '#3a7fbf', allocation: picked.length >= 2 ? '40%' : '—', strategyName: picked[1]?.name || picked[0]?.name || '—', role: '回撤控制核心', annualReturn: picked[1] ? `${picked[1].annualReturn >= 0 ? '+' : ''}${picked[1].annualReturn.toFixed(2)}%` : '—', drawdown: picked[1] ? `${picked[1].maxDrawdown?.toFixed(1) || '—'}%` : '—', winRate: picked[1] ? `${picked[1].winRate.toFixed(0)}%` : '—', reason: `低波动低回撤定位，与进攻层形成负相关缓冲。` },
-    { name: '流动性层', icon: '💧', color: '#58c7ff', allocation: picked.length >= 3 ? '20%' : picked.length >= 2 ? '20%' : '—', strategyName: picked[2]?.name || picked[0]?.name || '—', role: '流动性保障', annualReturn: picked[2] ? `${picked[2].annualReturn >= 0 ? '+' : ''}${picked[2].annualReturn.toFixed(2)}%` : picked[0] ? `${picked[0].annualReturn >= 0 ? '+' : ''}${picked[0].annualReturn.toFixed(2)}%` : '—', drawdown: picked[2] ? `${picked[2].maxDrawdown?.toFixed(1) || '—'}%` : picked[0] ? `${picked[0].maxDrawdown?.toFixed(1) || '—'}%` : '—', winRate: picked[2] ? `${picked[2].winRate.toFixed(0)}%` : picked[0] ? `${picked[0].winRate.toFixed(0)}%` : '—', reason: `高流动性定位，满足客户日常资金调配需求。` },
+    { name: '进攻层', icon: '⚡', color: '#d0680a', allocation: picked.length >= 2 ? '40%' : '—', strategyName: picked[0]?.name || '—', role: '收益增强定位', annualReturn: picked[0] ? `${picked[0].annualReturn >= 0 ? '+' : ''}${picked[0].annualReturn.toFixed(2)}%` : '—', drawdown: picked[0] ? `${picked[0].maxDrawdown?.toFixed(1) || '—'}%` : '—', winRate: picked[0] ? `${picked[0].winRate.toFixed(0)}%` : '—', reason: `高风险高收益定位，在组合中承担收益增强职能。` },
+    { name: '防御层', icon: '🛡️', color: '#3a7fbf', allocation: picked.length >= 2 ? '40%' : '—', strategyName: picked[1]?.name || picked[0]?.name || '—', role: '下行风险缓冲', annualReturn: picked[1] ? `${picked[1].annualReturn >= 0 ? '+' : ''}${picked[1].annualReturn.toFixed(2)}%` : '—', drawdown: picked[1] ? `${picked[1].maxDrawdown?.toFixed(1) || '—'}%` : '—', winRate: picked[1] ? `${picked[1].winRate.toFixed(0)}%` : '—', reason: `低波动低回撤定位，与进攻层形成低相关性配置，降低组合整体波动。` },
+    { name: '流动性管理层', icon: '💧', color: '#58c7ff', allocation: picked.length >= 3 ? '20%' : picked.length >= 2 ? '20%' : '—', strategyName: picked[2]?.name || picked[0]?.name || '—', role: '流动性管理', annualReturn: picked[2] ? `${picked[2].annualReturn >= 0 ? '+' : ''}${picked[2].annualReturn.toFixed(2)}%` : picked[0] ? `${picked[0].annualReturn >= 0 ? '+' : ''}${picked[0].annualReturn.toFixed(2)}%` : '—', drawdown: picked[2] ? `${picked[2].maxDrawdown?.toFixed(1) || '—'}%` : picked[0] ? `${picked[0].maxDrawdown?.toFixed(1) || '—'}%` : '—', winRate: picked[2] ? `${picked[2].winRate.toFixed(0)}%` : picked[0] ? `${picked[0].winRate.toFixed(0)}%` : '—', reason: `高流动性定位，满足客户日常资金调配需求。` },
   ]
 
   const avgReturn = picked.reduce((a, b) => a + b.annualReturn, 0) / picked.length
@@ -758,7 +774,7 @@ async function runAiDiagnosis() {
     portfolioDrawdown: `-${avgDrawdown.toFixed(2)}%`,
     sharpeRatio: (avgReturn / (avgDrawdown || 1)).toFixed(2),
     coverage: ['低', '中', '高'][Math.min(Math.floor(picked.length / 1.5), 2)],
-    synergyLogic: `本组合通过"进攻层"与"防御层"的负相关性设计，实现收益与回撤的解耦管理。三层分工明确、互相咬合，在客户所要求的${riskLabel}风险框架内，最大化风险调整后收益。组合夏普比率${(avgReturn / (avgDrawdown || 1)).toFixed(2)}，历史最大回撤控制在${avgDrawdown.toFixed(1)}%以内。`,
+    synergyLogic: `本组合通过"进攻层"与"防御层"的低相关性配置，降低组合整体波动。三层分工明确、互为补充，在客户所要求的${riskLabel}风险框架内，最大化风险调整后收益。组合夏普比率${(avgReturn / (avgDrawdown || 1)).toFixed(2)}，历史最大回撤控制在${avgDrawdown.toFixed(1)}%以内。`,
   }
   aiLoading.value = false
 }
@@ -977,6 +993,10 @@ onUnmounted(() => {
 
 /* AI诊断筛选卡 */
 .ai-filter-card { padding: 20px 22px; }
+.ai-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+.ai-left-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.ai-result-col { min-width: 0; }
+.ai-loading-card { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; gap: 16px; text-align: center; }
 .ai-filter-row { display: flex; flex-direction: column; gap: 14px; }
 .ai-filter-row .filter-group { display: flex; flex-direction: column; gap: 6px; }
 .ai-filter-row .filter-label { font-size: 12px; font-weight: 600; color: var(--text); letter-spacing: 0.04em; }
