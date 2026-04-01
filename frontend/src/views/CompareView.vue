@@ -797,7 +797,7 @@ async function loadPortfolioNarrative() {
   if (!portfolioStrategies.value.length || portfolioTotal.value !== 100) return
   portfolioNarrLoading.value = true
   try {
-    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003'
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
     const components = portfolioStrategies.value.map(s => ({
       name: s.name, navCategory: s.navCategory, annualReturn: s.annualReturn,
       maxDrawdown: s.maxDrawdown || 0, volatility: (s as any).volatilityValue || 0,

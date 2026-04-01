@@ -1,10 +1,10 @@
 <template>
   <div class="display" ref="rootEl" tabindex="-1" @keydown="onKey">
 
-    <!-- ══合并的顶部导航栏（sticky，包含品分类+策略控制键） ══-->
+    <!-- ═══ 合并的顶部导航栏（sticky，包含品牌+分类+策略名+控制键） ═══ -->
     <div class="exhibition-topbar" v-if="current">
 
-      <!-- 第一行：品牌 + 分类标签 + 时钟 + 退-->
+      <!-- 第一行：品牌 + 分类标签 + 时钟 + 退出 -->
       <div class="topbar-row">
         <div class="brand">
           <div class="brand-g">GS</div>
@@ -24,7 +24,7 @@
         <div class="topbar-right">
           <div class="clock">{{ clock }}</div>
           <div class="total">{{ all.length }} 条策略</div>
-          <button class="exit-btn" @click="exit">退出</button>
+          <button class="exit-btn" @click="exit">✕ 退出</button>
         </div>
       </div>
 
@@ -50,7 +50,7 @@
         </div>
       </div>
 
-      <!-- ══核心布局：左侧信+ 右侧图表 ══-->
+      <!-- ═══ 核心布局：左侧信息 + 右侧图表 ═══ -->
       <div class="main-area" v-if="current">
 
         <!-- 左：策略信息面板 -->
@@ -92,8 +92,8 @@
             <div class="info-section-title">基本信息</div>
             <div class="info-table">
               <div class="info-row"><span class="ik">策略分类</span><span class="iv">{{ current.navCategory }}</span></div>
-              <div class="info-row"><span class="ik">管理人</span><span class="iv">{{ current.owner || '暂无' }}</span></div>
-              <div class="info-row"><span class="ik">成立时间</span><span class="iv">{{ current.startDate || '暂无' }}</span></div>
+              <div class="info-row"><span class="ik">管理者</span><span class="iv">{{ current.owner || '—' }}</span></div>
+              <div class="info-row"><span class="ik">成立时间</span><span class="iv">{{ current.startDate || '—' }}</span></div>
               <div class="info-row">
                 <span class="ik">风险等级</span>
                 <span class="iv">
@@ -102,7 +102,7 @@
                   </span>
                 </span>
               </div>
-              <div class="info-row"><span class="ik">比较基准</span><span class="iv">{{ current.benchmarkName || '暂无' }}</span></div>
+              <div class="info-row"><span class="ik">比较基准</span><span class="iv">{{ current.benchmarkName || '—' }}</span></div>
             </div>
           </div>
 
@@ -114,7 +114,7 @@
 
           <!-- AI 推荐理由 -->
           <div class="info-section">
-            <div class="info-section-title">AI 推荐亮点</div>
+            <div class="info-section-title">⭐ AI 推荐亮点</div>
             <div class="reasons">
               <div v-for="(r, i) in currentTierReasons" :key="i" class="reason">
                 <span class="rn">{{ i + 1 }}</span>
@@ -133,9 +133,9 @@
 
         </div>
 
-        <!-- 右：收益率曲线图-->
+        <!-- 右：收益率曲线图表 -->
         <div class="chart-panel">
-          <!-- 图表控制-->
+          <!-- 图表控制栏 -->
           <div class="chart-toolbar">
             <div class="chart-title">历史收益曲线</div>
             <div class="period-tabs">
@@ -167,7 +167,7 @@
 
       </div>
 
-      <!-- ══底部分类导航 ══-->
+      <!-- ═══ 底部分类导航 ═══ -->
       <div class="bottombar">
         <button
           v-for="(cat, i) in categories"
@@ -183,10 +183,10 @@
 
     </div>
 
-    <!-- 加载-->
+    <!-- 加载中 -->
     <div class="state-center" v-if="loading">
       <div class="ring"></div>
-      <div class="state-text">加载..</div>
+      <div class="state-text">加载中...</div>
     </div>
 
   </div>
@@ -218,7 +218,7 @@ const tsCache: Record<string, { strategy: any[]; benchmark: any[] }> = {}
 const periods = [
   { key: 'week', label: '近一周' },
   { key: 'month', label: '近一月' },
-  { key: 'quarter', label: '近三月' },
+  { key: 'quarter', label: '近一季' },
   { key: 'year', label: '近一年' },
   { key: 'inception', label: '成立以来' },
 ]
@@ -240,9 +240,9 @@ const catStrats = computed(() => categories.value[catIdx.value]?.strategies || [
 const current = computed(() => catStrats.value[stratIdx.value] || null)
 
 const globalRank = computed(() => {
-  if (!current.value) return '暂无'
+  if (!current.value) return '—'
   const i = all.value.findIndex(s => s.seed === current.value!.seed)
-  return i === -1 ? '暂无' : String(i + 1)
+  return i === -1 ? '—' : String(i + 1)
 })
 
 const alpha = computed(() => {
@@ -275,7 +275,7 @@ const currentTierReasons = computed(() => {
   if ((s.annualReturn || 0) >= 15) reasons.push(`年化收益${s.annualReturn.toFixed(1)}%，同类策略领先`)
   if ((s.winRate || 0) >= 80) reasons.push(`胜率${s.winRate.toFixed(0)}%，持续盈利能力突出`)
   if ((s as any).sharpe >= 1.5) reasons.push(`夏普比率${((s as any).sharpe).toFixed(2)}，风险收益效率优秀`)
-  if ((s as any).maxDrawdown && (s as any).maxDrawdown <= 10) reasons.push(`最大回{((s as any).maxDrawdown).toFixed(1)}%，风控良好`)
+  if ((s as any).maxDrawdown && (s as any).maxDrawdown <= 10) reasons.push(`最大回撤${((s as any).maxDrawdown).toFixed(1)}%，风控良好`)
   if (s.tags?.includes('量化')) reasons.push('量化驱动，纪律性强')
   if (s.tags?.includes('绝对收益')) reasons.push('绝对收益导向，与市场相关性低')
   return reasons.slice(0, 4)
@@ -323,7 +323,7 @@ async function fetchTS(seed: number, period: string) {
   const key = `${seed}-${period}`
   if (tsCache[key]) return
 
-  const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003'
+  const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
   const strat = all.value.find(s => s.seed === seed)
   const annualRet = strat?.annualReturn ?? 5
   const vol = (strat as any)?.volatilityValue ?? 8
@@ -358,13 +358,13 @@ function generateMockTS(seed: number, period: string, annualRet: number, vol: nu
   const periodMap: Record<string, { days: number; label: string }> = {
     week: { days: 7, label: '近一周' },
     month: { days: 30, label: '近一月' },
-    quarter: { days: 90, label: '近三月' },
+    quarter: { days: 90, label: '近一季' },
     year: { days: 252, label: '近一年' },
     inception: { days: 730, label: '成立以来' },
   }
   const { days } = periodMap[period] || { days: 252 }
 
-  // seed 做确定性随机（同一策略同周期结果一致）
+  // 用 seed 做确定性随机（同一策略同周期结果一致）
   const rng = (n: number) => {
     const x = Math.sin(seed * 9999 + n * 7.3) * 10000
     return x - Math.floor(x)
@@ -372,7 +372,8 @@ function generateMockTS(seed: number, period: string, annualRet: number, vol: nu
 
   const dailyRet = annualRet / 365
   const dailyVol = vol / Math.sqrt(365)
-  const points = Math.min(days, 120) // 最20个点，避免太
+  const points = Math.min(days, 120) // 最多120个点，避免太密
+
   let cum = 0
   const strategy: { date: string; ret: number }[] = []
   const benchmark: { date: string; ret: number }[] = []
@@ -417,7 +418,7 @@ function renderChart() {
   }
 
   // 合并所有日期
-    const allDates = [...new Set([
+  const allDates = [...new Set([
     ...strategy.map((p: any) => p.date),
     ...benchmark.map((p: any) => p.date),
   ])].sort()
@@ -456,7 +457,7 @@ function renderChart() {
           params.filter((p: any) => p.value != null).map((p: any) =>
             `<div style="display:flex;align-items:center;gap:6px;font-size:12px">
               <div style="width:8px;height:8px;border-radius:50%;background:${p.color}"></div>
-              ${p.seriesName} <b style="color:${p.value >= 0 ? '#f59e0b' : '#58c7ff'}">${p.value >= 0 ? '+' : ''}${p.value?.toFixed(2) ?? '0'}%</b>
+              ${p.seriesName} <b style="color:${p.value >= 0 ? '#f59e0b' : '#58c7ff'}">${p.value >= 0 ? '+' : ''}${p.value?.toFixed(2) ?? '—'}%</b>
             </div>`
           ).join('')
       },
@@ -545,7 +546,7 @@ onUnmounted(() => {
   z-index: 200;
 }
 
-/* ══ 合并后的顶部导航栏（sticky══ */
+/* ══ 合并后的顶部导航栏（sticky） ══ */
 .exhibition-topbar {
   position: sticky; top: 0; z-index: 200;
   background: #06090f;
@@ -623,7 +624,7 @@ onUnmounted(() => {
   gap: 18px;
 }
 
-/* 收益率大*/
+/* 收益率大字 */
 .hero-kpi { text-align: center; padding: 16px 0 12px; }
 .hero-return {
   font-size: 68px; font-weight: 900; line-height: 1;
@@ -673,7 +674,7 @@ onUnmounted(() => {
   overflow: hidden; min-height: 0;
 }
 
-/* 图表工具*/
+/* 图表工具栏 */
 .chart-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-shrink: 0; }
 .chart-title { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.5); }
 .period-tabs { display: flex; gap: 4px; }
