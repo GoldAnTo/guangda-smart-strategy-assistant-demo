@@ -120,14 +120,14 @@
           <!-- 核心数字墙 -->
           <div class="card-metrics">
             <div class="cm-item">
-              <div class="cm-val" :class="strategy.annualReturn >= 0 ? 'positive' : 'negative'">
-                {{ strategy.annualReturn >= 0 ? '+' : '' }}{{ strategy.annualReturn.toFixed(2) }}%
+              <div class="cm-val" :class="strategy.annualReturn != null ? (strategy.annualReturn >= 0 ? 'positive' : 'negative') : 'neutral'">
+                {{ strategy.annualReturn != null ? ((strategy.annualReturn >= 0 ? '+' : '') + strategy.annualReturn.toFixed(2) + '%') : '—' }}
               </div>
               <div class="cm-label">年化收益</div>
             </div>
             <div class="cm-divider"></div>
             <div class="cm-item">
-              <div class="cm-val" :class="winRateClass(strategy.winRate)">{{ strategy.winRate.toFixed(0) }}%</div>
+              <div class="cm-val" :class="winRateClass(strategy.winRate)">{{ strategy.winRate != null ? strategy.winRate.toFixed(0) + '%' : '—' }}</div>
               <div class="cm-label">年度胜率</div>
             </div>
             <div class="cm-divider"></div>
@@ -204,20 +204,23 @@ const categorySummary = computed(() => {
     ...Object.entries(cats).map(([name, items]) => ({
       name,
       count: items.length,
-      avgReturn: ((items.reduce((a, b) => a + b.annualReturn, 0) / items.length)).toFixed(1) + '%',
+      avgReturn: (() => { const valid = items.filter(i => i.annualReturn != null); return valid.length ? ((valid.reduce((a, b) => a + b.annualReturn, 0) / valid.length)).toFixed(1) + '%' : '—' })(),
     })),
   ]
 })
 
 const avgReturn = computed(() => {
   if (!allStrategies.value.length) return '—'
-  const avg = allStrategies.value.reduce((a, b) => a + b.annualReturn, 0) / allStrategies.value.length
-  return avg.toFixed(1) + '%'
+  const valid = allStrategies.value.filter(s => s.annualReturn != null)
+  if (!valid.length) return '—'
+  return (valid.reduce((a, b) => a + b.annualReturn, 0) / valid.length).toFixed(1) + '%'
 })
 
 const avgWinRate = computed(() => {
   if (!allStrategies.value.length) return '—'
-  const avg = allStrategies.value.reduce((a, b) => a + b.winRate, 0) / allStrategies.value.length
+  const valid = allStrategies.value.filter(s => s.winRate != null)
+  if (!valid.length) return '—'
+  const avg = valid.reduce((a, b) => a + b.winRate, 0) / valid.length
   return avg.toFixed(0) + '%'
 })
 
@@ -247,8 +250,9 @@ const filteredStrategies = computed(() => {
 const currentCatAvg = computed(() => {
   const list = activeCategory.value === '全部' ? allStrategies.value
     : allStrategies.value.filter(s => s.navCategory === activeCategory.value)
-  if (!list.length) return '—'
-  return (list.reduce((a, b) => a + b.annualReturn, 0) / list.length).toFixed(1) + '%'
+  const valid = list.filter(s => s.annualReturn != null)
+  if (!valid.length) return '—'
+  return (valid.reduce((a, b) => a + b.annualReturn, 0) / valid.length).toFixed(1) + '%'
 })
 
 const totalPages = computed(() => Math.ceil(filteredStrategies.value.length / pageSize))

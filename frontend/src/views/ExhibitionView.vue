@@ -59,7 +59,7 @@
           <!-- 年化收益率大数字 -->
           <div class="hero-kpi">
             <div class="hero-return" :class="current.annualReturn >= 0 ? 'gain' : 'loss'">
-              {{ current.annualReturn >= 0 ? '+' : '' }}{{ current.annualReturn.toFixed(2) }}%
+              {{ current.annualReturn != null ? ((current.annualReturn >= 0 ? '+' : '') + current.annualReturn.toFixed(2) + '%') : '—' }}
             </div>
             <div class="hero-label">年化收益率</div>
             <div class="hero-alpha" :class="alpha >= 0 ? 'gain' : 'loss'">
@@ -70,7 +70,7 @@
           <!-- 核心指标 -->
           <div class="metrics-grid">
             <div class="metric-card">
-              <div class="mcv">{{ current.winRate.toFixed(0) }}%</div>
+              <div class="mcv">{{ current.winRate != null ? current.winRate.toFixed(0) + '%' : '—' }}</div>
               <div class="mcl">年度胜率</div>
             </div>
             <div class="metric-card">
@@ -323,7 +323,11 @@ async function fetchTS(seed: number, period: string) {
   const key = `${seed}-${period}`
   if (tsCache[key]) return
 
-  const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
+  const base = (() => {
+    const env = import.meta.env.VITE_API_BASE_URL
+    if (env && env.startsWith('http')) return env
+    return window.location.origin
+  })()
   const strat = all.value.find(s => s.seed === seed)
   const annualRet = strat?.annualReturn ?? 5
   const vol = (strat as any)?.volatilityValue ?? 8

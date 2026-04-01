@@ -388,8 +388,8 @@
                       <div class="pb-sname">{{ s.name }}</div>
                       <div class="pb-scat">{{ s.navCategory }}</div>
                     </div>
-                    <div class="pb-sret" :class="s.annualReturn >= 0 ? 'gain' : 'loss'">
-                      {{ s.annualReturn >= 0 ? '+' : '' }}{{ s.annualReturn.toFixed(2) }}%
+                    <div class="pb-sret" :class="s.annualReturn != null ? (s.annualReturn >= 0 ? 'gain' : 'loss') : ''">
+                      {{ s.annualReturn != null ? ((s.annualReturn >= 0 ? '+' : '') + s.annualReturn.toFixed(2) + '%') : '—' }}
                     </div>
                   </div>
                 </div>
@@ -479,7 +479,7 @@
                       </div>
                       <div class="af-example" v-if="portfolioStrategies.length">
                         <template v-for="(s, i) in portfolioStrategies" :key="s.seed">
-                          <span v-if="i > 0"> + </span><span class="af-w">{{ portfolioWeights[s.seed] || 20 }}%</span> × <span class="af-m">{{ s.annualReturn >= 0 ? '+' : '' }}{{ s.annualReturn.toFixed(2) }}%</span>
+                          <span v-if="i > 0"> + </span><span class="af-w">{{ portfolioWeights[s.seed] || 20 }}%</span> × <span class="af-m">{{ s.annualReturn != null ? ((s.annualReturn >= 0 ? '+' : '') + s.annualReturn.toFixed(2) + '%') : '—' }}</span>
                         </template>
                         <span class="af-eq"> = </span>
                         <span class="af-result gain">{{ portfolioMetrics.return }}</span>
@@ -733,9 +733,9 @@ function renderMap() {
   const data = allStrategies.value.map(s => ({
     name: s.name,
     value: [
-      parseFloat((s.volatilityValue || 10).toFixed(2)),
-      parseFloat(s.annualReturn.toFixed(2)),
-      parseFloat((s.maxDrawdown || 5).toFixed(2)),
+      parseFloat((s.volatilityValue ?? 10).toFixed(2)),
+      parseFloat((s.annualReturn ?? 0).toFixed(2)),
+      parseFloat((s.maxDrawdown ?? 5).toFixed(2)),
       s.name, s.navCategory, s.seed,
     ],
     itemStyle: { color: getCatColor(s.navCategory) },
@@ -880,7 +880,7 @@ async function runAiDiagnosis() {
   }
 
   // ── 并行：获取 timeseries 计算相关性 + 压力测试 ──
-  const BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
+  const BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003'
   const yearData = await Promise.all(
     picked.map(s =>
       fetch(`${BASE}/strategies/${s.seed}/timeseries?period=year`)
@@ -1013,7 +1013,7 @@ async function loadPortfolioNarrative() {
   if (!portfolioStrategies.value.length || portfolioTotal.value !== 100) return
   portfolioNarrLoading.value = true
   try {
-    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003'
     const components = portfolioStrategies.value.map(s => ({
       name: s.name, navCategory: s.navCategory, annualReturn: s.annualReturn,
       maxDrawdown: s.maxDrawdown || 0, volatility: (s as any).volatilityValue || 0,

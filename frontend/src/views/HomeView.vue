@@ -139,7 +139,7 @@
           <h3 class="card-name">
             {{ s.name }}
             <!-- AI优选 移到策略名右侧作为显著标识 -->
-            <span class="card-ai-chip" v-if="s.annualReturn >= 15 && s.winRate >= 80">
+            <span class="card-ai-chip" v-if="s.annualReturn != null && s.annualReturn >= 15 && s.winRate != null && s.winRate >= 80">
               ⭐ AI优选
             </span>
           </h3>
@@ -148,14 +148,14 @@
           <!-- 指标墙 -->
           <div class="card-metrics">
             <div class="cm-item">
-              <div class="cm-val" :class="s.annualReturn >= 0 ? 'gain' : 'loss'">
-                {{ s.annualReturn >= 0 ? '+' : '' }}{{ s.annualReturn.toFixed(2) }}%
+              <div class="cm-val" :class="s.annualReturn != null ? (s.annualReturn >= 0 ? 'gain' : 'loss') : 'neutral'">
+                {{ s.annualReturn != null ? ((s.annualReturn >= 0 ? '+' : '') + s.annualReturn.toFixed(2) + '%') : '—' }}
               </div>
               <div class="cm-label">年化收益</div>
             </div>
             <div class="cm-divider"></div>
             <div class="cm-item">
-              <div class="cm-val" :class="winRateClass(s.winRate)">{{ s.winRate.toFixed(0) }}%</div>
+              <div class="cm-val" :class="winRateClass(s.winRate)">{{ s.winRate != null ? s.winRate.toFixed(0) + '%' : '—' }}</div>
               <div class="cm-label">胜率</div>
             </div>
             <div class="cm-divider"></div>
@@ -215,11 +215,13 @@ const riskFilters = [
 
 const avgReturn = computed(() => {
   if (!allStrategies.value.length) return '—'
-  return (allStrategies.value.reduce((a, b) => a + b.annualReturn, 0) / allStrategies.value.length).toFixed(1) + '%'
+  const valid = allStrategies.value.filter(s => s.annualReturn != null)
+  return valid.length ? (valid.reduce((a, b) => a + b.annualReturn, 0) / valid.length).toFixed(1) + '%' : '—'
 })
 const avgWinRate = computed(() => {
   if (!allStrategies.value.length) return '—'
-  return (allStrategies.value.reduce((a, b) => a + b.winRate, 0) / allStrategies.value.length).toFixed(0) + '%'
+  const valid = allStrategies.value.filter(s => s.winRate != null)
+  return valid.length ? (valid.reduce((a, b) => a + b.winRate, 0) / valid.length).toFixed(0) + '%' : '—'
 })
 const categoryCount = computed(() => {
   return new Set(allStrategies.value.map(s => s.navCategory)).size
@@ -246,8 +248,8 @@ const categoriesWithStrategies = computed(() => {
         count: strategies.length,
         avgReturn: valid.length ? (valid.reduce((a, b) => a + b.annualReturn, 0) / valid.length).toFixed(1) + '%' : '—',
         avgWinRate: valid.length ? (valid.reduce((a, b) => a + b.winRate, 0) / valid.length).toFixed(0) + '%' : '—',
+        strategies: [...strategies].sort((a, b) => (b.annualReturn ?? -Infinity) - (a.annualReturn ?? -Infinity)),
         topRisk,
-        strategies: [...strategies].sort((a, b) => b.annualReturn - a.annualReturn),
       }
     })
     .sort((a, b) => b.count - a.count)
@@ -264,8 +266,8 @@ const filteredStrategies = computed(() => {
     (s.tags || []).some(t => t.toLowerCase().includes(q))
   )
   list.sort((a, b) => {
-    if (sortKey.value === 'annualReturn') return b.annualReturn - a.annualReturn
-    if (sortKey.value === 'winRate') return b.winRate - a.winRate
+    if (sortKey.value === 'annualReturn') return (b.annualReturn ?? -Infinity) - (a.annualReturn ?? -Infinity)
+    if (sortKey.value === 'winRate') return (b.winRate ?? -Infinity) - (a.winRate ?? -Infinity)
     if (sortKey.value === 'name') return a.name.localeCompare(b.name)
     return 0
   })
@@ -287,7 +289,8 @@ function resetFilters() {
   activeRisk.value = ''
 }
 
-function winRateClass(w: number) {
+function winRateClass(w: number | null) {
+  if (w == null) return 'neutral'
   if (w >= 80) return 'gain'; if (w >= 60) return 'mid'; return 'loss'
 }
 

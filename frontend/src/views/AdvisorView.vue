@@ -300,11 +300,11 @@
                   </div>
                   <div class="rc-metrics">
                     <div class="rc-metric">
-                      <span class="rc-mv gain">{{ item.strategy.annualReturn >= 0 ? '+' : '' }}{{ item.strategy.annualReturn.toFixed(2) }}%</span>
+                      <span class="rc-mv gain">{{ item.strategy.annualReturn != null ? ((item.strategy.annualReturn >= 0 ? '+' : '') + item.strategy.annualReturn.toFixed(2) + '%') : '—' }}</span>
                       <span class="rc-ml">年化收益</span>
                     </div>
                     <div class="rc-metric">
-                      <span class="rc-mv">{{ item.strategy.winRate.toFixed(0) }}%</span>
+                      <span class="rc-mv">{{ item.strategy.winRate != null ? item.strategy.winRate.toFixed(0) + '%' : '—' }}</span>
                       <span class="rc-ml">胜率</span>
                     </div>
                     <div class="rc-metric">
@@ -358,7 +358,7 @@
                   </div>
                   <div class="rc-metrics compact-metrics">
                     <div class="rc-metric">
-                      <span class="rc-mv gain">{{ item.strategy.annualReturn >= 0 ? '+' : '' }}{{ item.strategy.annualReturn.toFixed(2) }}%</span>
+                      <span class="rc-mv gain">{{ item.strategy.annualReturn != null ? ((item.strategy.annualReturn >= 0 ? '+' : '') + item.strategy.annualReturn.toFixed(2) + '%') : '—' }}</span>
                       <span class="rc-ml">年化</span>
                     </div>
                     <div class="rc-metric">
@@ -516,7 +516,11 @@ async function handleAnalyze() {
   aiSteps.value.forEach(s => s.active = false)
 
   try {
-    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003'
+    const base = (() => {
+    const env = import.meta.env.VITE_API_BASE_URL
+    if (env && env.startsWith('http')) return env
+    return window.location.origin
+  })()
     const resp = await fetch(`${base}/api/recommend`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -547,7 +551,7 @@ async function regenerateNarrative() {
   if (!strategies.length) return
   narrativeLoading.value = true
   try {
-    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
+    const base = (() => { const env = import.meta.env.VITE_API_BASE_URL; return (env && env.startsWith('http')) ? env : window.location.origin })()
     const resp = await fetch(`${base}/api/recommend-narrative`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -573,7 +577,7 @@ async function loadAttribution() {
   try {
     const item = primaryRecs.value.find((r: any) => r.strategy.id === attributionStrategyId.value)
     if (!item) return
-    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
+    const base = (() => { const env = import.meta.env.VITE_API_BASE_URL; return (env && env.startsWith('http')) ? env : window.location.origin })()
     const resp = await fetch(`${base}/api/attribution`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
