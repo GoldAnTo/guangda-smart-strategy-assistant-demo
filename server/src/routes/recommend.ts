@@ -28,8 +28,61 @@ router.post('/api/recommend', (req, res) => {
   }
 })
 
-// POST /api/recommend-narrative — 规则引擎生成结构化专业Narrative
-// POST /api/recommend-narrative — AI 生成结构化专业分析Narrative
+function generateTemplateNarrative(strategies: any[], returnTarget: string, riskLevel: string): string {
+  if (!strategies?.length) return '暂无策略信息'
+  const s = strategies[0]
+  const returnMap: Record<string, string> = {
+    stable: '5%以下', moderate: '5%-10%', aggressive: '10%以上'
+  }
+  const riskMap: Record<string, string> = {
+    R1: '保守型', R2: '稳健型', R3: '平衡型', R4: '积极型', R5: '激进型'
+  }
+  const safeTags = (tags: any): string => {
+    if (!tags) return '暂无';
+    if (Array.isArray(tags)) return tags.join('、');
+    if (typeof tags === 'string') return tags;
+    return String(tags);
+  };
+  const riskText = riskMap[riskLevel] || riskLevel || '平衡型'
+  const returnText = returnMap[returnTarget] || returnTarget || '5%-10%'
+  const annRet = Number(s.annualReturn) || 0
+  const retSign = annRet >= 0 ? '+' : ''
+  const maxLoss = Math.round((Number(s.maxDrawdown) || 0) * 10) / 10
+
+  return `【光大资管 · 策略配置建议书】
+
+一、首选策略推荐
+
+${s.name || '策略名称'}
+
+光大资管旗下 ${s.navCategory || '混合'} 策略，近一年年化收益率达 ${retSign}${annRet.toFixed(2)}%，区间胜率 ${Number(s.winRate || 0).toFixed(0)}%，夏普比率 ${Number(s.sharpe || 0).toFixed(2)}。该策略以 ${s.logicSummary || '多元策略框架'}(${safeTags(s.tags)})为核心，在过去一年波动市场中展现出良好的风险调整收益特征。
+
+二、核心推荐逻辑
+
+• 收益能力：年化 ${retSign}${annRet.toFixed(2)}%，显著跑赢同类型策略基准，在当前 ${returnText} 的收益目标下具有竞争力。
+
+• 风险控制：历史最大回撤 ${maxLoss}%，夏普比率 ${Number(s.sharpe || 0).toFixed(2)}（>1为优秀），风险调整后收益质量良好。
+
+• 策略适配：适合风险偏好为${riskText}的投资者，与您的收益目标（${returnText}）高度匹配。
+
+三、备选策略说明
+
+${strategies.length > 1 ? strategies.slice(1).map((alt: any, i: number) => {
+  const aRet = Number(alt.annualReturn) || 0
+  return `备选${i + 1} ${alt.name || '备选策略'}：年化${aRet >= 0 ? '+' : ''}${aRet.toFixed(2)}%，回撤${(Number(alt.maxDrawdown) || 0).toFixed(1)}%。`
+}).join('\n\n') : '暂无其他备选策略。'}
+
+四、风险揭示
+
+历史业绩不代表未来表现。上述策略在极端市场情景下，最大回撤历史记录为${maxLoss}%，意味着投资100万元在最坏情况下可能浮亏约${maxLoss}万元。请投资者充分了解产品风险，审慎做出投资决策。
+
+五、配置建议
+
+建议首期配置比例20%-40%，持有期限6个月以上。重点关注净值波动率和最大回撤两项风控指标，若回撤超过历史均值1.5倍，建议及时与顾问沟通调整。
+`
+}
+
+// POST /api/recommend-narrative — 流式生成推荐解读
 router.post('/api/recommend-narrative', async (req, res) => {
   const requestId = res.locals.requestId
   try {

@@ -516,7 +516,7 @@ async function handleAnalyze() {
   aiSteps.value.forEach(s => s.active = false)
 
   try {
-    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003'
     const resp = await fetch(`${base}/api/recommend`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

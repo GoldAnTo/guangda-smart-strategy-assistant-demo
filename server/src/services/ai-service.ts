@@ -1,5 +1,6 @@
 import 'dotenv/config'
-import axios from 'axios'
+import * as https from 'https'
+import { HttpsProxyAgent } from 'https-proxy-agent'
 
 function getModelConfig() {
   return {
@@ -9,58 +10,34 @@ function getModelConfig() {
   }
 }
 
-async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = 120000): Promise<Response> {
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), timeoutMs)
-  try {
-    const response = await fetch(url, { ...options, signal: controller.signal })
-    clearTimeout(timer)
-    return response
-  } catch (err: any) {
-    clearTimeout(timer)
-    if (err.name === 'AbortError' || String(err.message).includes('aborted')) {
-      throw new Error(`请求超时（${timeoutMs / 1000}s），请重试`)
-    }
-    throw err
-  }
-}
-
 function isAnthropicFormat(url: string): boolean {
   return url.includes('anthropic') || url.includes('minimaxi')
 }
 
-// axios 实例（支持代理），用于 OpenAI 格式请求
-const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY || ''
-function buildAxiosInstance() {
-  if (!proxyUrl) return axios.create({ timeout: 120000 })
+// 5分钟超时
+const AI_TIMEOUT_MS = 300000
+
+function getProxyAgent() {
+  // 优先使用环境变量，回退到本地代理
+  const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY || 'http://127.0.0.1:7897'
+  if (!proxyUrl) return undefined
   try {
-    const u = new URL(proxyUrl)
-    return axios.create({
-      timeout: 120000,
-      proxy: {
-        host: u.hostname,
-        port: parseInt(u.port || '7897'),
-        protocol: u.protocol.replace(':', '')
-      }
-    })
-  } catch {
-    return axios.create({ timeout: 120000 })
-  }
+    return new HttpsProxyAgent(proxyUrl)
+  } catch { return undefined }
 }
-const axiosInstance = buildAxiosInstance()
 
 async function requestModel(prompt: string, systemContent: string, temperature: number, maxTokens = 4000) {
   const { url, key, name } = getModelConfig()
+  if (!url || !key) throw new Error('MODEL_API_URL or MODEL_API_KEY is missing')
 
-  if (!url || !key) {
-    throw new Error('MODEL_API_URL or MODEL_API_KEY is missing')
-  }
+  const proxyAgent = getProxyAgent()
 
   if (isAnthropicFormat(url)) {
-    // Anthropic/MiniMax 格式（原生 fetch，无需代理）
-    const response = await fetchWithTimeout(
-      url + '/messages',
-      {
+    // Anthropic/MiniMax 格式
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), AI_TIMEOUT_MS)
+    try {
+      const response = await fetch(url + '/messages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -73,32 +50,67 @@ async function requestModel(prompt: string, systemContent: string, temperature: 
           messages: [{ role: 'user', content: prompt }],
           temperature,
           max_tokens: maxTokens
-        })
-      },
-      120000
-    )
-    if (!response.ok) {
-      const text = await response.text()
-      throw new Error(`AI request failed: ${response.status} ${text.slice(0, 200)}`)
+        }),
+        signal: controller.signal as any
+      } as any)
+      clearTimeout(timer)
+      if (!response.ok) {
+        const text = await response.text()
+        throw new Error(`AI request failed: ${response.status} ${text.slice(0, 200)}`)
+      }
+      return response.json()
+    } catch (err: any) {
+      clearTimeout(timer)
+      if (err.name === 'AbortError' || String(err.message).includes('aborted')) {
+        throw new Error(`AI 请求超时（${AI_TIMEOUT_MS / 1000}s），请重试`)
+      }
+      throw err
     }
-    return response.json()
   } else {
-    // OpenAI Responses API 格式（axios + 代理）
-    const response = await axiosInstance.post(
-      url + '/v1/responses',
-      {
+    // OpenAI Responses API 格式（通过代理）
+    return new Promise((resolve, reject) => {
+      const body = JSON.stringify({
         model: name,
         input: (systemContent ? systemContent + '\n\n' : '') + prompt,
         max_tokens: maxTokens
-      },
-      {
+      })
+
+      const options: https.RequestOptions = {
+        hostname: new URL(url).hostname,
+        port: 443,
+        path: '/v1/responses',
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${key}`
-        }
+          'Authorization': `Bearer ${key}`,
+          'Content-Length': Buffer.byteLength(body)
+        },
+        timeout: AI_TIMEOUT_MS
       }
-    )
-    return response.data
+
+      if (proxyAgent) {
+        (options as any).agent = proxyAgent
+      }
+
+      const req = https.request(options, (res) => {
+        let data = ''
+        res.on('data', (chunk) => { data += chunk })
+        res.on('end', () => {
+          if (res.statusCode && res.statusCode >= 400) {
+            reject(new Error(`AI request failed: ${res.statusCode} ${data.slice(0, 200)}`))
+          } else {
+            try { resolve(JSON.parse(data)) }
+            catch { reject(new Error(`Invalid JSON response: ${data.slice(0, 200)}`)) }
+          }
+        })
+      })
+
+      req.on('error', (err) => reject(err))
+      req.on('timeout', () => { req.destroy(); reject(new Error(`AI 请求超时（${AI_TIMEOUT_MS / 1000}s），请重试`)) })
+
+      req.write(body)
+      req.end()
+    })
   }
 }
 
@@ -116,15 +128,18 @@ const CHAT_SYSTEM_PROMPT = `
 
 function extractAnthropicContent(data: any): string {
   const blocks = data.content || []
-  return blocks
-    .filter((b: any) => b.type === 'text')
-    .map((b: any) => b.text)
-    .join('')
+  return blocks.filter((b: any) => b.type === 'text').map((b: any) => b.text).join('')
 }
 
 function extractOpenAIContent(data: any): string {
-  // Responses API 格式
-  if (data.output) return data.output
+  // Responses API: { output: [{ type: 'message', content: [{ type: 'output_text', text: '...' }] }] }
+  if (data.output && Array.isArray(data.output)) {
+    const messageBlock = data.output.find((b: any) => b.type === 'message')
+    if (messageBlock?.content && Array.isArray(messageBlock.content)) {
+      const textBlock = messageBlock.content.find((b: any) => b.type === 'output_text' || b.type === 'text')
+      if (textBlock?.text) return textBlock.text
+    }
+  }
   // Chat Completions 兼容
   return data.choices?.[0]?.message?.content || ''
 }
@@ -133,21 +148,15 @@ export const aiService = {
   async generateJson(prompt: string): Promise<string> {
     const { url } = getModelConfig()
     for (let attempt = 0; attempt < 2; attempt++) {
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('AI请求超时（10s）')), 10000)
-      )
-      const requestPromise = requestModel(prompt, JSON_SYSTEM_PROMPT, 0.2, 2000)
-      const data = await Promise.race([requestPromise, timeoutPromise])
-      const content = isAnthropicFormat(url || '')
-        ? extractAnthropicContent(data)
-        : extractOpenAIContent(data)
       try {
+        const data = await requestModel(prompt, JSON_SYSTEM_PROMPT, 0.2, 2000)
+        const content = isAnthropicFormat(url || '')
+          ? extractAnthropicContent(data)
+          : extractOpenAIContent(data)
         JSON.parse(content)
         return content
-      } catch {
-        if (attempt === 1) {
-          throw new Error('AI JSON response is invalid after retry')
-        }
+      } catch (err: any) {
+        if (attempt === 1) throw new Error('AI JSON response is invalid after retry: ' + err.message)
       }
     }
     return '{}'
@@ -155,12 +164,7 @@ export const aiService = {
 
   async generateText(prompt: string): Promise<string> {
     const { url } = getModelConfig()
-    // 硬超时10秒，防止代理无限等待
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('AI请求超时（10s），请重试')), 10000)
-    )
-    const requestPromise = requestModel(prompt, CHAT_SYSTEM_PROMPT, 0.3, 4000)
-    const data = await Promise.race([requestPromise, timeoutPromise])
+    const data = await requestModel(prompt, CHAT_SYSTEM_PROMPT, 0.3, 4000)
     return isAnthropicFormat(url || '')
       ? extractAnthropicContent(data)
       : extractOpenAIContent(data)
