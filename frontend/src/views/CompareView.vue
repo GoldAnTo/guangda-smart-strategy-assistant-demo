@@ -274,6 +274,52 @@
               <div class="synergy-body">{{ aiResult.synergyLogic }}</div>
             </div>
 
+            <!-- 压力测试 -->
+            <div class="stress-section" v-if="aiResult.stressTests">
+              <div class="section-eyebrow" style="margin-bottom: 12px;">历史极端行情压力测试</div>
+              <div class="stress-note">以下数据为估算值，基于历史区间内各策略表现推算，供参考</div>
+              <div class="stress-grid">
+                <div
+                  v-for="st in aiResult.stressTests"
+                  :key="st.label"
+                  class="stress-card"
+                  :style="{ borderColor: st.color + '44' }"
+                >
+                  <div class="sc-header">
+                    <span class="sc-label">{{ st.label }}</span>
+                    <span class="sc-tag" :style="{ background: st.color + '22', color: st.color }">{{ st.tag }}</span>
+                  </div>
+                  <div class="sc-metrics">
+                    <div class="sc-m">
+                      <div class="sc-mv" :class="st.portfolioRet.startsWith('+') ? 'gain' : st.portfolioRet.startsWith('-') ? 'loss' : ''">{{ st.portfolioRet }}</div>
+                      <div class="sc-ml">估算区间收益</div>
+                    </div>
+                    <div class="sc-m">
+                      <div class="sc-mv loss">{{ st.worstDrawdown }}</div>
+                      <div class="sc-ml">估算最大回撤</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 相关性热力图 -->
+            <div class="corr-section" v-if="aiResult.corrMatrix">
+              <div class="section-eyebrow" style="margin-bottom: 12px;">策略相关性矩阵</div>
+              <div class="corr-chart" ref="corrChartRef"></div>
+              <div class="corr-legend">
+                <span class="cl-label">高度正相关</span>
+                <div class="cl-gradient"></div>
+                <span class="cl-label">高度负相关</span>
+              </div>
+              <div class="corr-legend">
+                <span class="cl-label">高度正相关</span>
+                <div class="cl-gradient"></div>
+                <span class="cl-label">高度负相关</span>
+              </div>
+              <div class="corr-hint">注：|相关系数|&gt;0.7 为高度相关，建议在组合中控制同类策略占比</div>
+            </div>
+
             <!-- 合规声明 -->
             <div class="compliance-footer">
               <div class="cf-divider"></div>
@@ -570,6 +616,7 @@ const scaleOptions = [
 const allStrategies = ref<StrategyItem[]>([])
 const loading = ref(false)
 const mapChartRef = ref<HTMLElement>()
+const corrChartRef = ref<HTMLElement>()
 const mapChartInstance = ref<echarts.ECharts | null>(null)
 
 const clientProfile = ref({ risk: 'R3', returnTarget: 'moderate', scale: 'medium' })
@@ -752,6 +799,52 @@ function renderMap() {
   }, true)
 }
 
+// ═══════════════ 相关性热力图 ═══════════════
+let corrChartInstance: echarts.ECharts | null = null
+
+function renderCorrChart(mat: { seeds: number[], names: string[], matrix: number[][] }) {
+  if (!corrChartRef.value) return
+  if (corrChartInstance) {
+    corrChartInstance.dispose()
+    corrChartInstance = null
+  }
+  corrChartInstance = echarts.init(corrChartRef.value)
+
+  const n = mat.names.length
+  const heatData: [number, number, number][] = []
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) {
+      heatData.push([j, i, mat.matrix[i][j]])
+    }
+  }
+
+  corrChartInstance.setOption({
+    tooltip: {
+      trigger: 'item',
+      formatter: (params: any) => {
+        const r = mat.matrix[params.value[1]][params.value[0]]
+        return `${mat.names[params.value[1]]} × ${mat.names[params.value[0]]}<br/>相关系数：<b>${r.toFixed(3)}</b>`
+      },
+    },
+    grid: { top: 10, bottom: 10, left: 10, right: 10, containLabel: false },
+    xAxis: { type: 'category', data: mat.names, show: false },
+    yAxis: { type: 'category', data: mat.names, show: false, inverse: true },
+    visualMap: {
+      min: -1, max: 1, calculable: false,
+      inRange: { color: ['#3b82f6', '#93c5fd', '#f3f4f6', '#fca5a5', '#ef4444'] },
+      right: 0, bottom: 0, itemWidth: 12, itemHeight: 80,
+      textStyle: { fontSize: 10, color: '#6b7280' },
+    },
+    series: [{
+      type: 'heatmap',
+      data: heatData,
+      label: { show: true, formatter: (p: any) => mat.matrix[p.value[1]][p.value[0]].toFixed(2), fontSize: 9, color: '#fff', fontWeight: 'bold' },
+      itemStyle: { borderWidth: 2, borderColor: '#fff', borderRadius: 3 },
+      emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.3)' } },
+    }],
+  }, true)
+}
+
 // ═══════════════ AI诊断 ═══════════════
 async function runAiDiagnosis() {
   aiLoading.value = true
@@ -782,7 +875,107 @@ async function runAiDiagnosis() {
     sharpeRatio: (avgReturn / (avgDrawdown || 1)).toFixed(2),
     coverage: ['低', '中', '高'][Math.min(Math.floor(picked.length / 1.5), 2)],
     synergyLogic: `本组合通过"进攻层"与"防御层"的低相关性配置，降低组合整体波动。三层分工明确、互为补充，在客户所要求的${riskLabel}风险框架内，最大化风险调整后收益。组合夏普比率${(avgReturn / (avgDrawdown || 1)).toFixed(2)}，历史最大回撤控制在${avgDrawdown.toFixed(1)}%以内。`,
+    corrMatrix: null as any,
+    stressTests: null as any,
   }
+
+  // ── 并行：获取 timeseries 计算相关性 + 压力测试 ──
+  const BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
+  const yearData = await Promise.all(
+    picked.map(s =>
+      fetch(`${BASE}/strategies/${s.seed}/timeseries?period=year`)
+        .then(r => r.json())
+        .then(r => ({ seed: s.seed, name: s.name, data: r.data?.data || [] }))
+        .catch(() => ({ seed: s.seed, name: s.name, data: [] as any[] }))
+    )
+  )
+
+  // 相关性矩阵（最近252条日数据）
+  const allInception = await Promise.all(
+    picked.map(s =>
+      fetch(`${BASE}/strategies/${s.seed}/timeseries?period=inception`)
+        .then(r => r.json())
+        .then(r => ({ seed: s.seed, name: s.name, data: (r.data?.data || []) as any[] }))
+        .catch(() => ({ seed: s.seed, name: s.name, data: [] as any[] }))
+    )
+  )
+
+  // 相关性矩阵计算
+  if (allInception.every(t => t.data.length > 10)) {
+    const n = picked.length
+    const matrix: number[][] = Array.from({ length: n }, (_, i) =>
+      Array.from({ length: n }, (_, j) => {
+        if (i === j) return 1
+        const si = allInception[i].data.slice(-252)
+        const sj = allInception[j].data.slice(-252)
+        const minLen = Math.min(si.length, sj.length)
+        if (minLen < 10) return 0
+        const meanI = si.slice(0, minLen).reduce((a, p) => a + (p.ret || 0), 0) / minLen
+        const meanJ = sj.slice(0, minLen).reduce((a, p) => a + (p.ret || 0), 0) / minLen
+        let num = 0, denI = 0, denJ = 0
+        for (let k = 0; k < minLen; k++) {
+          const di = (si[k].ret || 0) - meanI
+          const dj = (sj[k].ret || 0) - meanJ
+          num += di * dj
+          denI += di * di
+          denJ += dj * dj
+        }
+        const denom = Math.sqrt(denI * denJ)
+        return denom === 0 ? 0 : Number((num / denom).toFixed(3))
+      })
+    )
+    aiResult.value.corrMatrix = {
+      seeds: picked.map(s => s.seed),
+      names: picked.map(s => s.name),
+      matrix,
+    }
+  }
+
+  // 压力测试：历史极端行情区间
+  const STRESS_PERIODS = [
+    { label: '2018年熊市', tag: '熊市', start: '20180101', end: '20181231', color: '#ef4444' },
+    { label: '2020疫情冲击', tag: '疫情', start: '20200203', end: '20200430', color: '#f97316' },
+    { label: '2022年熊市', tag: '熊市', start: '20220101', end: '20221231', color: '#ef4444' },
+    { label: '2024年震荡', tag: '震荡', start: '20240101', end: '20241231', color: '#eab308' },
+  ]
+
+  if (yearData.every(t => t.data.length > 0)) {
+    const stressResults = STRESS_PERIODS.map(period => {
+      let totalRet = 0
+      let worstDrawdown = 0
+      let validCount = 0
+      picked.forEach((s, i) => {
+        const ts = yearData[i].data.filter((d: any) => d.date >= period.start && d.date <= period.end)
+        if (ts.length === 0) return
+        // 区间累计收益（简化：区间内最后一个ret - 第一个ret，粗估）
+        const periodRet = ts.length > 1
+          ? Number(((ts[ts.length - 1] as any).ret - (ts[0] as any).ret).toFixed(2))
+          : 0
+        // 该策略在区间内的最大回撤（简化估算）
+        let dd = 0
+        let peak = -Infinity
+        for (const d of ts) {
+          const nav = 1 + ((d as any).ret || 0) / 100
+          if (nav >= peak) peak = nav
+          const drawdown = (nav - peak) / peak * 100
+          if (drawdown < dd) dd = drawdown
+        }
+        const w = (picked.length > 0 ? 1 / picked.length : 0)
+        totalRet += periodRet * w
+        worstDrawdown = Math.min(worstDrawdown, dd * w)
+        validCount++
+      })
+      return {
+        label: period.label,
+        tag: period.tag,
+        color: period.color,
+        portfolioRet: validCount > 0 ? `${totalRet >= 0 ? '+' : ''}${totalRet.toFixed(2)}%` : '数据不足',
+        worstDrawdown: validCount > 0 ? `${worstDrawdown.toFixed(2)}%` : '—',
+      }
+    })
+    aiResult.value.stressTests = stressResults
+  }
+
   aiLoading.value = false
 }
 
@@ -863,6 +1056,13 @@ watch(activeMode, async (mode) => {
     mapChartInstance.value.resize()
     renderMap()
   }
+})
+
+watch(() => aiResult.value?.corrMatrix, async (mat) => {
+  if (!mat) return
+  await nextTick()
+  await new Promise(r => requestAnimationFrame(() => r()))
+  renderCorrChart(mat)
 })
 
 onMounted(async () => {
@@ -1213,6 +1413,33 @@ onUnmounted(() => {
   .pm-divider { width: 80%; height: 1px; }
 }
 
+/* 压力测试 */
+.stress-section { margin-top: 20px; }
+.stress-note { font-size: 11px; color: #9ca3af; margin-bottom: 12px; line-height: 1.5; }
+.stress-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.stress-card { padding: 12px 14px; border-radius: 12px; border: 1px solid; background: rgba(255,255,255,0.6); }
+.sc-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.sc-label { font-size: 13px; font-weight: 600; color: var(--text); }
+.sc-tag { font-size: 10px; padding: 2px 8px; border-radius: 999px; font-weight: 600; }
+.sc-metrics { display: flex; gap: 16px; }
+.sc-m { display: flex; flex-direction: column; gap: 2px; }
+.sc-mv { font-size: 15px; font-weight: 700; }
+.sc-ml { font-size: 10px; color: var(--muted); }
+@media print {
+  .stress-section { page-break-inside: avoid; }
+}
+
+/* 相关性热力图 */
+.corr-section { margin-top: 20px; }
+.corr-chart { height: 200px; width: 100%; }
+.corr-legend { display: flex; align-items: center; gap: 8px; margin-top: 8px; justify-content: center; }
+.cl-gradient { width: 120px; height: 8px; border-radius: 4px; background: linear-gradient(to right, #3b82f6, #93c5fd, #f3f4f6, #fca5a5, #ef4444); }
+.cl-label { font-size: 10px; color: #9ca3af; white-space: nowrap; }
+.corr-hint { font-size: 11px; color: #9ca3af; margin-top: 8px; text-align: center; }
+@media print {
+  .corr-section { page-break-inside: avoid; }
+}
+
 @media print {
   .compare-header,
   .selector-wrap,
@@ -1228,5 +1455,7 @@ onUnmounted(() => {
   .compare-layout { grid-template-columns: 1fr !important; }
   .ai-result-card { box-shadow: none !important; border: 1px solid #ddd !important; }
   .compliance-footer { display: flex !important; }
+  .stress-section,
+  .corr-section { display: block !important; }
 }
 </style>
