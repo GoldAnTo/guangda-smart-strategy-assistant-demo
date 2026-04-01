@@ -31,7 +31,10 @@
 
         <!-- AI 模式：客户画像表单（显示在策略列表上方） -->
         <template v-if="activeMode === 'ai'">
-          <div class="section-eyebrow">Client profile</div>
+          <div class="suitability-tip">
+            <span>📋 生成方案前，请确认已完成客户适当性评估</span>
+          </div>
+          <div class="section-eyebrow" style="margin-top: 10px;">Client profile</div>
           <div class="ai-filter-row">
             <div class="filter-group">
               <div class="filter-label">风险偏好</div>
@@ -198,10 +201,22 @@
           <!-- 右侧：AI 组合诊断报告 -->
           <section v-if="aiResult" class="result-section card ai-result-card">
             <div class="ai-result-header">
-              <div class="section-eyebrow">AI Diagnosis · Generated {{ new Date().toLocaleDateString('zh-CN') }}</div>
-              <button class="regenerate-btn" @click="runAiDiagnosis" :disabled="aiLoading">🔄 重新生成方案</button>
+              <div class="ai-result-header-left">
+                <div class="section-eyebrow">AI辅助生成 · {{ new Date().toLocaleDateString('zh-CN') }}</div>
+                <div class="ai-badge">🧠 AI辅助</div>
+              </div>
+              <div class="ai-result-actions">
+                <button class="export-btn" @click="onExportReport">📄 导出报告</button>
+                <button class="regenerate-btn" @click="runAiDiagnosis" :disabled="aiLoading">🔄 重新生成方案</button>
+              </div>
             </div>
             <h2 class="section-heading">组合诊断报告</h2>
+
+            <!-- 风险适当性提示 -->
+            <div class="suitability-alert">
+              <span class="sa-icon">⚠️</span>
+              <span class="sa-text">本报告仅供投资顾问参考，不构成任何投资建议。投资有风险，决策前请进行客户适当性评估。</span>
+            </div>
 
             <div class="diag-summary">
               <div class="diag-tag">{{ aiResult.riskLevel }}</div>
@@ -235,12 +250,12 @@
             <div class="portfolio-metrics">
               <div class="pm-item">
                 <div class="pm-val gain">{{ aiResult.portfolioReturn }}</div>
-                <div class="pm-label">组合预期年化收益率</div>
+                <div class="pm-label">估算组合年化收益率</div>
               </div>
               <div class="pm-divider"></div>
               <div class="pm-item">
                 <div class="pm-val loss">{{ aiResult.portfolioDrawdown }}</div>
-                <div class="pm-label">组合最大回撤率</div>
+                <div class="pm-label">估算组合最大回撤率</div>
               </div>
               <div class="pm-divider"></div>
               <div class="pm-item">
@@ -255,8 +270,17 @@
             </div>
 
             <div class="synergy-section">
-              <div class="section-eyebrow" style="margin-bottom: 12px;">协同逻辑</div>
+              <div class="section-eyebrow" style="margin-bottom: 12px;">配置逻辑</div>
               <div class="synergy-body">{{ aiResult.synergyLogic }}</div>
+            </div>
+
+            <!-- 合规声明 -->
+            <div class="compliance-footer">
+              <div class="cf-divider"></div>
+              <div class="cf-icon">⚠️</div>
+              <div class="cf-text">
+                <strong>免责声明：</strong>本报告由AI辅助生成，仅供内部投资顾问参考，不构成投资建议。过往业绩不代表未来表现，所有策略存在本金损失风险。投资决策须经过客户适当性评估，并由持牌投资顾问做出最终判断。
+              </div>
             </div>
           </section>
 
@@ -267,6 +291,12 @@
           </section>
 
           <section v-else class="result-section card ai-empty-card">
+            <div class="ai-result-header">
+              <div class="ai-result-header-left">
+                <div class="section-eyebrow">AI辅助生成</div>
+                <div class="ai-badge">🧠 AI辅助</div>
+              </div>
+            </div>
             <div class="ai-empty-icon">🧠</div>
             <div class="ai-empty-title">AI 组合诊断</div>
             <div class="ai-empty-sub">根据左侧客户画像，点击「生成组合配置方案」按钮，系统将结合客户风险偏好与策略特征输出适配组合方案</div>
@@ -274,6 +304,14 @@
               <div class="ai-step"><span class="step-num">1</span>设置风险偏好与收益目标</div>
               <div class="ai-step"><span class="step-num">2</span>AI 扫描全产品线</div>
               <div class="ai-step"><span class="step-num">3</span>输出攻守兼备的组合方案</div>
+            </div>
+            <!-- 合规声明 -->
+            <div class="compliance-footer">
+              <div class="cf-divider"></div>
+              <div class="cf-icon">⚠️</div>
+              <div class="cf-text">
+                <strong>免责声明：</strong>本报告由AI辅助生成，仅供内部投资顾问参考，不构成投资建议。过往业绩不代表未来表现。投资决策须经过客户适当性评估。
+              </div>
             </div>
           </section>
         </template>
@@ -462,6 +500,15 @@
                   </div>
                 </div>
 
+                <!-- 合规声明 -->
+                <div class="compliance-footer" v-if="portfolioGenerated">
+                  <div class="cf-divider"></div>
+                  <div class="cf-icon">⚠️</div>
+                  <div class="cf-text">
+                    <strong>免责声明：</strong>上述指标为估算值，仅供内部投资顾问参考，不构成投资建议。过往业绩不代表未来表现。投资决策须经过客户适当性评估，并由持牌投资顾问做出最终判断。
+                  </div>
+                </div>
+
               </div>
 
               <!-- 未选择状态 -->
@@ -490,6 +537,10 @@ const CAT_COLORS: Record<string, string> = {
   '股票多头': '#3a7fbf', '债券增强': '#6abf40', '商品及衍生品': '#d4a017',
   '量化策略': '#8b5cf6', '海外配置': '#d0680a', '绝对收益': '#4ade80',
   '现金管理': '#58c7ff', '其他': '#6d7c8d',
+}
+
+function onExportReport() {
+  window.print()
 }
 
 const modes = [
@@ -950,7 +1001,22 @@ onUnmounted(() => {
 /* AI诊断筛选卡 */
 .ai-filter-card { padding: 20px 22px; }
 .ai-loading-card { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; gap: 16px; text-align: center; }
+.ai-result-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.ai-result-actions { display: flex; align-items: center; gap: 8px; }
+.export-btn { display: flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 10px; border: 1.5px solid rgba(23,55,91,0.2); background: transparent; color: var(--text); cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s; }
+.export-btn:hover { border-color: var(--blue); color: var(--blue); background: rgba(23,55,91,0.05); }
+.ai-result-header-left { display: flex; align-items: center; gap: 10px; }
+.ai-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; background: rgba(158,114,46,0.12); color: #9e722e; font-size: 11px; font-weight: 600; border: 1px solid rgba(158,114,46,0.25); }
+.suitability-alert { display: flex; align-items: flex-start; gap: 8px; padding: 10px 14px; background: rgba(234,179,8,0.08); border: 1px solid rgba(234,179,8,0.25); border-radius: 10px; margin-bottom: 16px; }
+.suitability-alert .sa-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+.suitability-alert .sa-text { font-size: 12px; color: #92400e; line-height: 1.5; }
+.compliance-footer { margin-top: 20px; }
+.cf-divider { height: 1px; background: rgba(23,55,91,0.1); margin-bottom: 14px; }
+.cf-icon { font-size: 13px; margin-bottom: 6px; }
+.cf-text { font-size: 11px; color: #6b7280; line-height: 1.6; }
+.cf-text strong { color: #374151; }
 .selector-divider { height: 1px; background: rgba(23,55,91,0.1); margin: 12px 0; }
+.suitability-tip { display: flex; align-items: center; gap: 6px; padding: 7px 10px; background: rgba(234,179,8,0.08); border: 1px solid rgba(234,179,8,0.2); border-radius: 8px; font-size: 11px; color: #92400e; line-height: 1.4; }
 .ai-filter-row .risk-opt { display: flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 10px; border: 1.5px solid transparent; background: rgba(23,55,91,0.05); cursor: pointer; font-size: 13px; color: var(--text); transition: all 0.2s; }
 .ai-filter-row .risk-opt.active { border-color: var(--blue); background: rgba(23,55,91,0.08); color: var(--blue); font-weight: 600; }
 .ai-filter-row .risk-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
@@ -1145,5 +1211,22 @@ onUnmounted(() => {
   .map-quadrant-guide { grid-template-columns: repeat(2, 1fr); }
   .portfolio-metrics { flex-direction: column; }
   .pm-divider { width: 80%; height: 1px; }
+}
+
+@media print {
+  .compare-header,
+  .selector-wrap,
+  .mode-tabs,
+  .compare-layout > .result-area > section:not(.ai-result-card),
+  .export-btn,
+  .regenerate-btn,
+  .port-gen-btn-wrap,
+  .ai-filter-row,
+  .suitability-tip {
+    display: none !important;
+  }
+  .compare-layout { grid-template-columns: 1fr !important; }
+  .ai-result-card { box-shadow: none !important; border: 1px solid #ddd !important; }
+  .compliance-footer { display: flex !important; }
 }
 </style>
