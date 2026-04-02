@@ -155,7 +155,7 @@ button {
   top: 0;
   left: 0;
   right: 0;
-  z-index: 100;
+  z-index: 200;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -231,7 +231,7 @@ button {
 
 .view-wrap {
   position: relative;
-  padding: 88px 24px 40px;
+  padding: 112px 24px 40px;
   min-height: 100vh;
   box-sizing: border-box;
 }
@@ -293,17 +293,19 @@ button {
 
 /* 合规免责横幅 */
 .compliance-banner {
-  position: relative;
-  z-index: 200;
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 99;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 9px 28px;
-  background: rgba(249, 115, 22, 0.09);
-  border-bottom: 1.5px solid rgba(249, 115, 22, 0.22);
+  padding: 7px 28px;
+  background: rgba(249, 115, 22, 0.1);
+  border-bottom: 1.5px solid rgba(249, 115, 22, 0.25);
+  pointer-events: none;
 }
-.cb-icon { font-size: 15px; flex-shrink: 0; }
-.cb-text { font-size: 11.5px; color: #92400e; line-height: 1.6; }
+.cb-icon { font-size: 14px; flex-shrink: 0; }
+.cb-text { font-size: 11.5px; color: #92400e; line-height: 1.5; }
 .cb-text strong { font-weight: 700; }
 
 </style>
