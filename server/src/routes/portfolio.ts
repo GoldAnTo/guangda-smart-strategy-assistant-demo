@@ -129,6 +129,92 @@ function deriveAnnualReturn(ts: TimeSeriesPoint[]): number {
 // Default correlation between strategies for portfolio combination
 const STRATEGY_CORRELATION = 0.30
 
+// POST /portfolio/monte-carlo — 蒙特卡洛模拟
+router.post('/portfolio/monte-carlo', (req, res) => {
+  const requestId = res.locals.requestId
+  const { strategyIds, numSimulations = 500 } = req.body as {
+    strategyIds: string[]
+    numSimulations?: number
+  }
+
+  if (!strategyIds || !Array.isArray(strategyIds) || strategyIds.length < 2) {
+    return res.status(400).json({ code: 400, message: '至少需要2个策略', requestId })
+  }
+  if (strategyIds.length > 10) {
+    return res.status(400).json({ code: 400, message: '最多10个策略', requestId })
+  }
+
+  const allMeta = getMeta()
+  const metaById = new Map(allMeta.map(s => [String(s.seed), s]))
+
+  for (const id of strategyIds) {
+    if (!metaById.has(id)) {
+      return res.status(400).json({ code: 400, message: `策略 ${id} 不存在`, requestId })
+    }
+  }
+
+  try {
+    // 获取各策略指标
+    const strategies = strategyIds.map(id => metaById.get(id)!)
+
+    // 生成 N 组随机权重（Dirichlet分布，等价于归一化的随机正数）
+    const N = Math.min(Math.max(numSimulations, 100), 2000)
+    const results: { weights: number[]; return: number; volatility: number; sharpe: number }[] = []
+
+    for (let sim = 0; sim < N; sim++) {
+      // 生成随机权重（正数，然后归一化到100%）
+      const raw = strategies.map(() => Math.random())
+      const total = raw.reduce((a, b) => a + b, 0)
+      const weights = raw.map(w => w / total)
+
+      // 计算该权重组合的组合收益和波动率
+      const portfolioReturn = strategies.reduce((sum, s, i) => sum + weights[i] * s.annualReturn, 0)
+
+      let volVar = 0
+      for (let i = 0; i < strategies.length; i++) {
+        for (let j = 0; j < strategies.length; j++) {
+          const corr = i === j ? 1.0 : STRATEGY_CORRELATION
+          volVar += weights[i] * weights[j] * corr * ((strategies[i].volatilityValue || strategies[i].volatility || 0) / 100) * ((strategies[j].volatilityValue || strategies[j].volatility || 0) / 100)
+        }
+      }
+      const portfolioVol = Math.sqrt(Math.max(0, volVar)) * 100
+      const portfolioSharpe = portfolioVol > 0 ? portfolioReturn / portfolioVol : 0
+
+      results.push({
+        weights,
+        return: Math.round(portfolioReturn * 100) / 100,
+        volatility: Math.round(portfolioVol * 100) / 100,
+        sharpe: Math.round(portfolioSharpe * 100) / 100,
+      })
+    }
+
+    // 找出夏普比率最高的几组（"最优"组合）
+    const sorted = [...results].sort((a, b) => b.sharpe - a.sharpe)
+    const optimalIndices = new Set<number>()
+    sorted.slice(0, 20).forEach(item => {
+      optimalIndices.add(results.indexOf(item))
+    })
+
+    const labeled = results.map((r, idx) => ({
+      weights: r.weights.map(w => Math.round(w * 1000) / 10),
+      return: r.return,
+      volatility: r.volatility,
+      sharpe: r.sharpe,
+      isOptimal: optimalIndices.has(idx),
+    }))
+
+    res.json(successResponse({
+      strategyIds,
+      strategyNames: strategies.map(s => s.name),
+      numSimulations: N,
+      points: labeled,
+    }, requestId))
+  } catch (err) {
+    console.error('[portfolio/monte-carlo] error:', err)
+    res.status(500).json({ code: 500, message: '计算错误', requestId })
+  }
+})
+
 // POST /api/portfolio-narrative — 组合分析 AI 解读
 
 router.post('/api/portfolio-narrative', async (req, res) => {

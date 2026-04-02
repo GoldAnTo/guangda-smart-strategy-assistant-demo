@@ -247,6 +247,10 @@
               <span v-if="!simulating">🚀 生成组合模拟</span>
               <span v-else class="simulating-text"><span class="spin-ring-xs"></span> 模拟中...</span>
             </button>
+            <button v-if="selected.length >= 2" class="mc-btn" @click="runMonteCarlo" :disabled="mcRunning">
+              <span v-if="!mcRunning">🎲 蒙特卡洛模拟</span>
+              <span v-else class="simulating-text"><span class="spin-ring-xs"></span> 模拟中...</span>
+            </button>
           </div>
 
           <!-- 模拟结果 -->
@@ -333,7 +337,42 @@
               </div>
             </div>
 
-            <!-- AI 解读 -->
+            <!-- 蒙特卡洛模拟结果 -->
+          <div v-if="mcResult" class="mc-section card">
+            <div class="section-eyebrow">Monte Carlo simulation</div>
+            <div class="mc-header">
+              <h2 class="section-heading">蒙特卡洛模拟 · {{ mcResult.numSimulations }} 次随机组合</h2>
+              <button class="mc-close" @click="mcResult = null">×</button>
+            </div>
+
+            <!-- 散点图 -->
+            <div class="mc-chart-wrap">
+              <div ref="mcChartRef" class="mc-chart"></div>
+            </div>
+
+            <!-- 最优组合推荐 -->
+            <div class="mc-optimal" v-if="topOptimal.length">
+              <div class="mc-optimal-title">⭐ 最优组合 TOP {{ topOptimal.length }}</div>
+              <div class="mc-optimal-list">
+                <div v-for="(p, i) in topOptimal" :key="i" class="mc-optimal-item" @click="applyMcWeights(p)">
+                  <div class="mo-rank">#{{ i + 1 }}</div>
+                  <div class="mo-weights">
+                    <span v-for="(w, j) in p.weights" :key="j" class="mo-w-chip" :style="{ borderColor: getColor(selected[j]?.seed) }">
+                      {{ mcResult.strategyNames[j] }} {{ w }}%
+                    </span>
+                  </div>
+                  <div class="mo-metrics">
+                    <span class="mom ret" :class="p.return >= 0 ? 'gain' : 'loss'">{{ p.return >= 0 ? '+' : '' }}{{ p.return }}%</span>
+                    <span class="mom vol">{{ p.volatility }}%</span>
+                    <span class="mom sharpe">夏普 {{ p.sharpe }}</span>
+                  </div>
+                  <button class="mo-apply">应用</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- AI 解读 -->
             <div class="ai-interpret card ai-card">
               <div class="ai-head">
                 <span class="ai-icon">💬</span>
@@ -366,7 +405,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { listStrategies, simulatePortfolio, type StrategyItem, type PortfolioResult } from '../services/strategy'
+import { listStrategies, simulatePortfolio, runMonteCarloSimulation, type StrategyItem, type PortfolioResult, type MonteCarloResult, type MonteCarloPoint } from '../services/strategy'
 import type { Allocation } from '../services/strategy'
 import { matchProducts, generateExplanation } from '../services/recommendation'
 import { useDemandStore } from '../stores/demand'
@@ -391,6 +430,12 @@ const result = ref<PortfolioResult | null>(null)
 const aiInterpretation = ref('')
 const aiLoading = ref(false)
 const simulating = ref(false)
+
+// Monte Carlo
+const mcResult = ref<MonteCarloResult | null>(null)
+const mcRunning = ref(false)
+const mcChartRef = ref<HTMLElement | null>(null)
+const topOptimal = computed(() => mcResult.value?.points.filter(p => p.isOptimal) ?? [])
 
 // AI 推荐状态
 const recResult = ref<any>(null)
@@ -637,13 +682,84 @@ async function generateAIInterpretation() {
   }
 }
 
+
+
+async function runMonteCarlo() {
+  if (selected.value.length < 2) return
+  mcRunning.value = true
+  mcResult.value = null
+  try {
+    const ids = selected.value.map(s => String(s.seed))
+    mcResult.value = await runMonteCarloSimulation(ids, 500)
+  } catch {
+    mcResult.value = null
+  } finally {
+    mcRunning.value = false
+  }
+}
+
+function applyMcWeights(p: MonteCarloPoint) {
+  if (!mcResult.value) return
+  p.weights.forEach((w, i) => {
+    if (selected.value[i]) {
+      allocations.value[selected.value[i].seed] = w
+    }
+  })
+  // Trigger recalculation
+  calculate()
+}
+
 onMounted(async () => {
   allStrategies.value = await listStrategies()
   // 有 profile 时自动加载 AI 推荐
   if (hasProfile.value) {
     await loadAIRecommendations()
   }
+}
+
+// Watch mcResult and render ECharts scatter
+watch(mcResult, async (val) => {
+  if (!val || !mcChartRef.value) return
+  await nextTick()
+  const echarts = await import('echarts')
+  const chart = echarts.init(mcChartRef.value, undefined, { renderer: 'canvas' })
+
+  const points = val.points
+  const normalPts = points.filter(p => !p.isOptimal).map(p => [p.volatility, p.return])
+  const optimalPts = points.filter(p => p.isOptimal).map(p => [p.volatility, p.return])
+
+  chart.setOption({
+    tooltip: {
+      trigger: 'item',
+      formatter: (p: any) => `波动率: ${p.value[0]}%<br/>收益: ${p.value[1]}%`
+    },
+    xAxis: { name: '波动率 (%)', type: 'value', axisLabel: { formatter: '{value}%' } },
+    yAxis: { name: '年化收益 (%)', type: 'value' },
+    series: [
+      {
+        name: '全部组合',
+        type: 'scatter',
+        data: normalPts,
+        symbolSize: 6,
+        itemStyle: { color: 'rgba(23,55,91,0.25)', opacity: 0.6 }
+      },
+      {
+        name: '最优组合',
+        type: 'scatter',
+        data: optimalPts,
+        symbolSize: 10,
+        itemStyle: { color: '#c24a00', opacity: 1 }
+      }
+    ],
+    legend: { right: 20 },
+    grid: { top: 40, bottom: 50, left: 70, right: 40 }
+  })
 })
+
+function nextTick() {
+  return new Promise(resolve => setTimeout(resolve, 50))
+}
+)
 </script>
 
 <style scoped>
@@ -878,4 +994,49 @@ onMounted(async () => {
 
 .rec-idle { padding: 12px 0; }
 .ri-idle-hint { font-size: 13px; color: var(--muted); text-align: center; line-height: 1.7; }
+
+
+/* ── Monte Carlo ── */
+.mc-section { padding: 24px 26px; }
+.mc-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.mc-close { background: none; border: none; font-size: 22px; color: var(--muted); cursor: pointer; padding: 0 4px; }
+.mc-close:hover { color: var(--text); }
+
+.mc-chart-wrap { width: 100%; height: 320px; margin-bottom: 20px; }
+.mc-chart { width: 100%; height: 100%; }
+
+.mc-optimal { margin-top: 8px; }
+.mc-optimal-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 12px; }
+.mc-optimal-list { display: flex; flex-direction: column; gap: 8px; }
+.mc-optimal-item {
+  display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+  border-radius: 12px; background: rgba(208,104,10,0.05);
+  border: 1.5px solid rgba(208,104,10,0.15); cursor: pointer; transition: all 0.2s;
+}
+.mc-optimal-item:hover { border-color: rgba(208,104,10,0.4); background: rgba(208,104,10,0.1); }
+.mo-rank { font-size: 12px; font-weight: 700; color: var(--gold); width: 28px; flex-shrink: 0; }
+.mo-weights { flex: 1; display: flex; flex-wrap: wrap; gap: 5px; }
+.mo-w-chip { font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid; background: rgba(255,255,255,0.7); color: var(--text); }
+.mo-metrics { display: flex; gap: 12px; flex-shrink: 0; }
+.mom { font-size: 12px; font-weight: 700; font-family: 'DIN Alternate','Bahnschrift',sans-serif; }
+.mom.ret { min-width: 60px; text-align: right; }
+.mom.vol { color: var(--muted); min-width: 50px; text-align: right; }
+.mom.sharpe { color: var(--gold); }
+.mo-apply {
+  padding: 4px 12px; border-radius: 8px; border: 1px solid rgba(208,104,10,0.3);
+  background: rgba(208,104,10,0.08); color: #9e722e; font-size: 12px; font-weight: 600;
+  cursor: pointer; flex-shrink: 0; transition: all 0.2s;
+}
+.mo-apply:hover { background: rgba(208,104,10,0.18); }
+
+/* MC button */
+.mc-btn {
+  padding: 12px 24px; border-radius: 14px; border: none;
+  background: rgba(23,55,91,0.08); color: var(--blue);
+  border: 1.5px solid rgba(23,55,91,0.2);
+  font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+}
+.mc-btn:hover:not(:disabled) { background: rgba(23,55,91,0.14); }
+.mc-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
 </style>

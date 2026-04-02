@@ -126,3 +126,24 @@ export async function simulatePortfolio(allocations: Allocation[], period = 'inc
   const response = await apiClient.post('/portfolio/simulate', { allocations, period })
   return unwrap<PortfolioResult>(response.data)
 }
+
+// Monte Carlo simulation
+export interface MonteCarloPoint {
+  weights: number[]
+  return: number
+  volatility: number
+  sharpe: number
+  isOptimal: boolean
+}
+
+export interface MonteCarloResult {
+  strategyIds: string[]
+  strategyNames: string[]
+  numSimulations: number
+  points: MonteCarloPoint[]
+}
+
+export async function runMonteCarloSimulation(strategyIds: string[], numSimulations = 500): Promise<MonteCarloResult> {
+  const response = await apiClient.post('/portfolio/monte-carlo', { strategyIds, numSimulations })
+  return unwrap<MonteCarloResult>(response.data)
+}
