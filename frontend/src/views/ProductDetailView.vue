@@ -46,6 +46,14 @@
         <div class="tag-row">
           <span v-for="tag in ((strategy?.tags) || []).slice(0, 5)" :key="tag" class="tag">{{ tag }}</span>
         </div>
+
+        <!-- 策略定位标签 -->
+        <div class="strategy-position-tags" v-if="strategy">
+          <span class="ptag risk" :class="'risk-' + (strategy.riskLevel || '')">{{ strategy.riskLevelDisplay || strategy.riskLevel || '' }}</span>
+          <span class="ptag horizon" v-if="strategy.investmentHorizonDisplay">{{ strategy.investmentHorizonDisplay }}</span>
+          <span class="ptag cat" v-if="strategy.navCategory">{{ strategy.navCategory }}</span>
+          <span class="ptag liquidity" v-if="strategy.liquidityDisplay">{{ strategy.liquidityDisplay }}</span>
+        </div>
       </div>
 
       <!-- 核心指标 -->
@@ -873,4 +881,21 @@ async function loadAttr() {
 @media (max-width: 600px) {
   .attr-dimensions { grid-template-columns: 1fr; }
 }
+
+
+/* 策略定位标签 */
+.strategy-position-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.ptag {
+  font-size: 11.5px; padding: 3px 10px; border-radius: 999px; font-weight: 600;
+  border: 1px solid; letter-spacing: 0.02em;
+}
+.ptag.risk.risk-R1 { color: #166534; border-color: #22c55e; background: rgba(34,197,94,0.08); }
+.ptag.risk.risk-R2 { color: #1e40af; border-color: #3b82f6; background: rgba(59,130,246,0.08); }
+.ptag.risk.risk-R3 { color: #92400e; border-color: #f59e0b; background: rgba(245,158,11,0.08); }
+.ptag.risk.risk-R4 { color: #9f1239; border-color: #f43f5e; background: rgba(244,63,94,0.08); }
+.ptag.risk.risk-R5 { color: #581c87; border-color: #a855f7; background: rgba(168,85,247,0.08); }
+.ptag.horizon { color: var(--blue); border-color: rgba(23,55,91,0.2); background: rgba(23,55,91,0.06); }
+.ptag.cat { color: #6b4226; border-color: rgba(107,66,38,0.2); background: rgba(107,66,38,0.06); }
+.ptag.liquidity { color: var(--muted); border-color: rgba(23,55,91,0.12); background: rgba(23,55,91,0.04); }
+
 </style>
