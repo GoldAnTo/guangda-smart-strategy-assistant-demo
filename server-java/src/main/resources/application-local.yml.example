@@ -1,9 +1,0 @@
-server:
-  port: 3002
-
-ai:
-  api-url: https://your-openai-compatible-endpoint/v1/chat/completions
-  api-key: your_api_key_here
-  model-name: gpt-5.4
-  timeout-ms: 30000
-  product-brief-cache-minutes: 30
