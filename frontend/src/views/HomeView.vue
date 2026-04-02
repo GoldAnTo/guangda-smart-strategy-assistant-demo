@@ -32,6 +32,39 @@
     </header>
 
     <!-- ═══════════════════════════════════════════════ -->
+    <!-- 策略体系总览 -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <section class="strategy-overview" v-if="!loading && !error">
+      <div class="so-inner">
+        <div class="so-left">
+          <div class="so-eyebrow">Strategy System</div>
+          <h2 class="so-heading">光大资管策略体系</h2>
+          <p class="so-desc">覆盖股票多头、量化对冲、固定收益三大核心资产类别，基于多因子模型、量化选股和资产配置框架构建，追求穿越周期的稳健超额收益。</p>
+        </div>
+        <div class="so-right">
+          <div class="so-stat-grid">
+            <div class="sos-item">
+              <div class="sos-num">{{ allStrategies.length }}</div>
+              <div class="sos-label">在架策略</div>
+            </div>
+            <div class="sos-item">
+              <div class="sos-num">{{ categoryCount }}</div>
+              <div class="sos-label">资产类别</div>
+            </div>
+            <div class="sos-item">
+              <div class="sos-num">{{ avgReturn }}%</div>
+              <div class="sos-label">平均年化收益</div>
+            </div>
+            <div class="sos-item">
+              <div class="sos-num gain">{{ avgWinRate }}%</div>
+              <div class="sos-label">平均胜率</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════ -->
     <!-- 分类概览标签（简化版，只显示名称） -->
     <!-- ═══════════════════════════════════════════════ -->
     <section class="cat-overview" v-if="!loading && !error">
@@ -507,4 +540,53 @@ onMounted(loadStrategies)
   .controls-bar { flex-direction: column; align-items: stretch; }
   .sort-tabs { overflow-x: auto; }
 }
+
+
+
+/* 策略体系总览 */
+.strategy-overview {
+  margin-bottom: 20px;
+}
+.so-inner {
+  display: flex;
+  gap: 32px;
+  align-items: flex-start;
+  padding: 24px 28px;
+  background: rgba(255,252,246,0.9);
+  border: 1px solid rgba(255,255,255,0.9);
+  box-shadow: 0 4px 20px rgba(41,61,84,0.08);
+  border-radius: 20px;
+}
+.so-left { flex: 1; }
+.so-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 8px;
+}
+.so-heading { font-size: 22px; font-weight: 700; color: var(--text); margin: 0 0 10px; }
+.so-desc { font-size: 13.5px; color: var(--muted); line-height: 1.8; margin: 0; }
+.so-right { flex-shrink: 0; }
+.so-stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.sos-item {
+  text-align: center;
+  padding: 12px 20px;
+  background: rgba(23,55,91,0.04);
+  border-radius: 14px;
+  min-width: 90px;
+}
+.sos-num {
+  font-size: 22px;
+  font-weight: 800;
+  font-family: 'DIN Alternate','Bahnschrift',sans-serif;
+  color: var(--text);
+  line-height: 1;
+}
+.sos-label { font-size: 11px; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
+
 </style>

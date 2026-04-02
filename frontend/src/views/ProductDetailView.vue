@@ -274,6 +274,32 @@
         </div>
       </div>
 
+      <!-- 归因方法说明（始终显示） -->
+      <div class="attr-methodology" v-if="attrResult && !attrLoading">
+        <div class="am-header">
+          <span class="am-icon">📖</span>
+          <span class="am-title">归因方法说明</span>
+        </div>
+        <div class="am-body">
+          <div class="am-row">
+            <div class="am-label">分析维度</div>
+            <div class="am-content">基于策略的历史净值指标（年化收益、波动率、最大回撤、夏普比率等）进行特征画像，结合行业通用的策略分类逻辑，由 AI 生成符合行业惯例的解读文本。</div>
+          </div>
+          <div class="am-row">
+            <div class="am-label">数据基础</div>
+            <div class="am-content">本示例中的策略数据为模拟数据，用于演示目的。真实场景下，系统可对接光大资管的实际净值数据与持仓数据。</div>
+          </div>
+          <div class="am-row">
+            <div class="am-label">方法定位</div>
+            <div class="am-content">本分析为<strong>策略画像解读</strong>，而非严格的业绩归因（Brinson 模型等）。真正的持仓归因需要持仓明细、行业配置权重等底层数据支持。</div>
+          </div>
+          <div class="am-row">
+            <div class="am-label">免责声明</div>
+            <div class="am-content">AI 生成内容仅供参考，不构成投资建议。历史业绩不代表未来表现，投资有风险，决策需谨慎。</div>
+          </div>
+        </div>
+      </div>
+
       <!-- 未加载状态 -->
       <div class="attr-start" v-if="strategy && !attrResult && !attrLoading">
         <div class="as-icon">🔬</div>
@@ -826,6 +852,16 @@ async function loadAttr() {
 .attr-actions { display: flex; justify-content: flex-end; }
 .ab-regen { padding: 6px 14px; border-radius: 8px; border: 1px solid rgba(23,55,91,0.15); background: transparent; color: var(--muted); cursor: pointer; font-size: 12px; transition: all 0.2s; }
 .ab-regen:hover { border-color: var(--blue); color: var(--blue); }
+
+/* 归因方法说明 */
+.attr-methodology { margin-top: 18px; padding: 16px 18px; border-radius: 12px; background: rgba(23,55,91,0.04); border: 1.5px dashed rgba(23,55,91,0.12); }
+.am-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.am-icon { font-size: 16px; }
+.am-title { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+.am-body { display: flex; flex-direction: column; gap: 10px; }
+.am-row { display: flex; gap: 14px; align-items: flex-start; }
+.am-label { font-size: 12px; font-weight: 700; color: var(--blue); min-width: 72px; flex-shrink: 0; }
+.am-content { font-size: 12px; color: var(--muted); line-height: 1.75; }
 
 .attr-start { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 32px 20px; text-align: center; }
 .as-icon { font-size: 42px; }

@@ -4,6 +4,12 @@
     <div class="app-bg app-bg-two"></div>
     <div class="app-bg app-bg-grid"></div>
 
+    <!-- 合规免责横幅 -->
+    <div class="compliance-banner">
+      <span class="cb-icon">⚠️</span>
+      <span class="cb-text"><strong>免责声明：</strong>本平台所有策略数据均为演示用模拟数据，不构成光大资管任何产品的真实业绩陈述或投资建议。投资有风险，决策需谨慎。</span>
+    </div>
+
     <header class="topbar">
       <div class="brand" @click="router.push('/')">
         <div class="brand-mark">GS</div>
@@ -283,4 +289,21 @@ button {
     padding: 88px 16px 40px;
   }
 }
+
+
+/* 合规免责横幅 */
+.compliance-banner {
+  position: relative;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 28px;
+  background: rgba(249, 115, 22, 0.09);
+  border-bottom: 1.5px solid rgba(249, 115, 22, 0.22);
+}
+.cb-icon { font-size: 15px; flex-shrink: 0; }
+.cb-text { font-size: 11.5px; color: #92400e; line-height: 1.6; }
+.cb-text strong { font-weight: 700; }
+
 </style>

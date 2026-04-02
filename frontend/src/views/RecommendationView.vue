@@ -404,7 +404,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { listStrategies, simulatePortfolio, runMonteCarloSimulation, type StrategyItem, type PortfolioResult, type MonteCarloResult, type MonteCarloPoint } from '../services/strategy'
 import type { Allocation } from '../services/strategy'
 import { matchProducts, generateExplanation } from '../services/recommendation'
@@ -715,7 +715,7 @@ onMounted(async () => {
   if (hasProfile.value) {
     await loadAIRecommendations()
   }
-}
+});
 
 // Watch mcResult and render ECharts scatter
 watch(mcResult, async (val) => {
@@ -731,7 +731,7 @@ watch(mcResult, async (val) => {
   chart.setOption({
     tooltip: {
       trigger: 'item',
-      formatter: (p: any) => `波动率: ${p.value[0]}%<br/>收益: ${p.value[1]}%`
+      formatter: (p: any) => '波动率: ' + p.value[0] + '%<br/>收益: ' + p.value[1] + '%'
     },
     xAxis: { name: '波动率 (%)', type: 'value', axisLabel: { formatter: '{value}%' } },
     yAxis: { name: '年化收益 (%)', type: 'value' },
@@ -755,11 +755,6 @@ watch(mcResult, async (val) => {
     grid: { top: 40, bottom: 50, left: 70, right: 40 }
   })
 })
-
-function nextTick() {
-  return new Promise(resolve => setTimeout(resolve, 50))
-}
-)
 </script>
 
 <style scoped>
