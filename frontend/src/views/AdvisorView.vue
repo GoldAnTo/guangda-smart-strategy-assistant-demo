@@ -212,18 +212,143 @@
             </div>
           </div>
 
-          <!-- AI Narrative -->
-          <div class="narrative-card card" v-if="narrative || narrativeLoading">
-            <div class="nc-head">
-              <span class="nc-icon">🧠</span>
-              <span class="nc-title">AI 对比分析</span>
-              <button class="nc-refresh" @click="regenerateNarrative" :disabled="narrativeLoading">
-                {{ narrativeLoading ? '生成中...' : '🔄 更新' }}
-              </button>
+          <!-- AI 配置建议书 -->
+          <div class="advice-book card" v-if="hasSearched && result && !result.shouldEscalate">
+
+            <!-- 报告封面 -->
+            <div class="book-cover">
+              <div class="bc-left">
+                <div class="section-eyebrow">AI Wealth Advisory</div>
+                <h2 class="bc-title">客户专属配置建议书</h2>
+                <div class="bc-meta">
+                  <span>📅 {{ new Date().toLocaleDateString('zh-CN', { year:'numeric', month:'long', day:'numeric' }) }}</span>
+                  <span>🏦 光大资管策略顾问台</span>
+                </div>
+              </div>
+              <div class="bc-stats">
+                <div class="bcs-item">
+                  <div class="bcs-val primary">{{ result.primaryCount }}</div>
+                  <div class="bcs-lab">首选策略</div>
+                </div>
+                <div class="bcs-item">
+                  <div class="bcs-val alt">{{ result.alternativeCount }}</div>
+                  <div class="bcs-lab">备选关注</div>
+                </div>
+                <div class="bcs-item">
+                  <div class="bcs-val caution">{{ result.cautionaryCount }}</div>
+                  <div class="bcs-lab">需谨慎</div>
+                </div>
+              </div>
             </div>
-            <div class="nc-body" v-if="narrative">{{ narrative }}</div>
-            <div class="nc-loading" v-else-if="narrativeLoading">
-              <span class="spinner-sm"></span> AI 正在生成分析...
+
+            <!-- 画像摘要 -->
+            <div class="book-section">
+              <div class="bs-title"><span class="bs-icon">👤</span> 客户画像摘要</div>
+              <div class="bs-body">
+                <div class="profile-tags">
+                  <span class="ptag">{{ riskLabel }}</span>
+                  <span class="ptag">{{ horizonLabel }}</span>
+                  <span class="ptag">{{ liquidityLabel }}</span>
+                  <span class="ptag">{{ returnLabel }}</span>
+                </div>
+                <p class="profile-narrative">{{ result.profileSummary }}</p>
+              </div>
+            </div>
+
+            <!-- 配置逻辑说明书 -->
+            <div class="book-section" v-if="narrative || narrativeLoading">
+              <div class="bs-title"><span class="bs-icon">🧠</span> 配置逻辑说明书</div>
+              <div class="bs-body">
+                <div class="nc-loading" v-if="narrativeLoading">
+                  <span class="spinner-sm"></span> AI 正在生成配置逻辑...
+                </div>
+                <div class="config-logic" v-else>{{ narrative }}</div>
+              </div>
+            </div>
+
+            <!-- 策略对比表 -->
+            <div class="book-section" v-if="primaryRecs.length >= 2">
+              <div class="bs-title"><span class="bs-icon">📊</span> 策略对比表</div>
+              <div class="compare-table-wrap">
+                <table class="compare-table">
+                  <thead>
+                    <tr>
+                      <th>指标</th>
+                      <th v-for="item in primaryRecs.slice(0, 3)" :key="item.strategy.id">
+                        <div class="ct-strat-name">{{ item.strategy.name }}</div>
+                        <div class="ct-cat">{{ item.strategy.navCategory }}</div>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="ct-metric">年化收益</td>
+                      <td v-for="item in primaryRecs.slice(0, 3)" :key="item.strategy.id" class="ct-val gain">
+                        {{ item.strategy.annualReturn >= 0 ? '+' : '' }}{{ item.strategy.annualReturn.toFixed(2) }}%
+                      </td>
+                    </tr>
+                    <tr>
+                      <td class="ct-metric">最大回撤</td>
+                      <td v-for="item in primaryRecs.slice(0, 3)" :key="item.strategy.id" class="ct-val loss">
+                        -{{ (item.strategy.maxDrawdown || 0).toFixed(2) }}%
+                      </td>
+                    </tr>
+                    <tr>
+                      <td class="ct-metric">胜率</td>
+                      <td v-for="item in primaryRecs.slice(0, 3)" :key="item.strategy.id" class="ct-val">
+                        {{ item.strategy.winRate.toFixed(0) }}%
+                      </td>
+                    </tr>
+                    <tr>
+                      <td class="ct-metric">风险等级</td>
+                      <td v-for="item in primaryRecs.slice(0, 3)" :key="item.strategy.id" class="ct-val">
+                        {{ item.strategy.riskLevelDisplay || 'R3' }}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td class="ct-metric">AI匹配度</td>
+                      <td v-for="item in primaryRecs.slice(0, 3)" :key="item.strategy.id" class="ct-val">
+                        <span class="ct-score" :class="item.matchScore >= 90 ? 'high' : item.matchScore >= 75 ? 'mid' : 'low'">
+                          {{ item.matchScore }}分
+                        </span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td class="ct-metric">适合场景</td>
+                      <td v-for="item in primaryRecs.slice(0, 3)" :key="item.strategy.id" class="ct-val ct-scene">
+                        {{ item.matchReasons[0] || '符合客户需求' }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- 风险揭示 -->
+            <div class="book-section risk-section">
+              <div class="bs-title"><span class="bs-icon">⚠️</span> 风险揭示（投资者须知）</div>
+              <div class="risk-cards">
+                <div class="risk-card" v-for="item in primaryRecs.slice(0, 2)" :key="item.strategy.id">
+                  <div class="rc-risk-name">{{ item.strategy.name }}</div>
+                  <div class="rc-worst">
+                    <span class="rcw-label">历史最差情况</span>
+                    <span class="rcw-val loss">最大回撤 -{{ (item.strategy.maxDrawdown || 0).toFixed(1) }}%</span>
+                  </div>
+                  <div class="rc-risk-note">
+                    在极端市场环境下（如2022年股市大幅下跌），该策略历史最大回撤为
+                    <strong class="loss">{{ (item.strategy.maxDrawdown || 0).toFixed(1) }}%</strong>，
+                    意味着投资100万元在最坏情况下可能浮亏约
+                    <strong class="loss">{{ Math.round((item.strategy.maxDrawdown || 0) * 1).toFixed(0) }}万元</strong>。
+                    请确认您可以承受上述潜在损失再做出投资决策。
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="book-footer">
+              <button class="bf-refresh" @click="regenerateNarrative" :disabled="narrativeLoading">
+                {{ narrativeLoading ? '生成中...' : '🔄 重新生成配置建议' }}
+              </button>
             </div>
           </div>
 
@@ -300,11 +425,11 @@
                   </div>
                   <div class="rc-metrics">
                     <div class="rc-metric">
-                      <span class="rc-mv gain">{{ item.strategy.annualReturn != null ? ((item.strategy.annualReturn >= 0 ? '+' : '') + item.strategy.annualReturn.toFixed(2) + '%') : '—' }}</span>
+                      <span class="rc-mv gain">{{ item.strategy.annualReturn >= 0 ? '+' : '' }}{{ item.strategy.annualReturn.toFixed(2) }}%</span>
                       <span class="rc-ml">年化收益</span>
                     </div>
                     <div class="rc-metric">
-                      <span class="rc-mv">{{ item.strategy.winRate != null ? item.strategy.winRate.toFixed(0) + '%' : '—' }}</span>
+                      <span class="rc-mv">{{ item.strategy.winRate.toFixed(0) }}%</span>
                       <span class="rc-ml">胜率</span>
                     </div>
                     <div class="rc-metric">
@@ -316,11 +441,11 @@
                       <span class="rc-ml">投资期限</span>
                     </div>
                                     <div class="rc-tags">
-                    <span class="rtag risk" :class="'risk-' + (item.strategy.riskLevel || '')">{{ item.strategy.riskLevelDisplay || item.strategy.riskLevel }}</span>
+                    <span class="rtag risk" :class="(item.strategy.riskLevel ? 'risk-' + item.strategy.riskLevel : '')">{{ item.strategy.riskLevelDisplay || item.strategy.riskLevel }}</span>
                     <span class="rtag horizon" v-if="item.strategy.investmentHorizonDisplay">{{ item.strategy.investmentHorizonDisplay }}</span>
                     <span class="rtag cat" v-if="item.strategy.navCategory">{{ item.strategy.navCategory }}</span>
                   </div>
-                  <div class="rc-reasons">
+
                     <span
                       v-for="reason in item.matchReasons.slice(0, 3)"
                       :key="reason"
@@ -362,7 +487,7 @@
                   </div>
                   <div class="rc-metrics compact-metrics">
                     <div class="rc-metric">
-                      <span class="rc-mv gain">{{ item.strategy.annualReturn != null ? ((item.strategy.annualReturn >= 0 ? '+' : '') + item.strategy.annualReturn.toFixed(2) + '%') : '—' }}</span>
+                      <span class="rc-mv gain">{{ item.strategy.annualReturn >= 0 ? '+' : '' }}{{ item.strategy.annualReturn.toFixed(2) }}%</span>
                       <span class="rc-ml">年化</span>
                     </div>
                     <div class="rc-metric">
@@ -498,6 +623,23 @@ const cautionaryRecs = computed(() =>
   (result.value?.recommendations || []).filter((r: any) => r.priority === 'cautionary')
 )
 
+const riskLabel = computed(() => ({
+  conservative: '保守型', stable: '稳健型', balanced: '平衡型', growth: '进取型', highRisk: '高风险承受'
+}[form.value.riskLevel] || form.value.riskLevel))
+
+const horizonLabel = computed(() => ({
+  short_term: '半年内', medium_term: '半年至2年', long_term: '2年以上'
+}[form.value.investmentHorizon] || form.value.investmentHorizon))
+
+const liquidityLabel = computed(() => ({
+  high: '高流动性', medium: '中流动性', low: '低流动性'
+}[form.value.liquidityNeed] || form.value.liquidityNeed))
+
+const returnLabel = computed(() => ({
+  capital_stability: '本金保障', stable_enhancement: '稳健增值', balanced: '收益平衡',
+  balanced_growth: '稳健成长', growth: '追求高收益', absolute_return: '绝对收益', alternative_return: '低相关性'
+}[form.value.returnExpectation] || form.value.returnExpectation))
+
 // ── Actions ───────────────────────────────────────────
 function applyScene(scene: any) {
   Object.assign(form.value, scene.form)
@@ -520,18 +662,24 @@ async function handleAnalyze() {
   aiSteps.value.forEach(s => s.active = false)
 
   try {
-    const base = (() => {
-    const env = import.meta.env.VITE_API_BASE_URL
-    if (env && env.startsWith('http')) return env
-    return window.location.origin
-  })()
-    const resp = await fetch(`${base}/api/recommend`, {
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003'
+    const resp = await fetch(`${base}/api/match-products`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form.value),
+      body: JSON.stringify({ profile: form.value }),
     })
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
     const data = await resp.json()
-    result.value = data.data || data
+    const unwrapped = data.data || data
+    // 映射 match-products → AdvisorView 期望的字段
+    result.value = {
+      recommendations: (unwrapped.recommended || []).map((p: any) => ({
+        strategy: p,
+        matchScore: p.matchScore,
+        matchReasons: p.matchReasons,
+      })),
+      shouldEscalate: unwrapped.shouldEscalate,
+    }
     // Auto-load narrative for top strategies
     if (result.value?.recommendations?.length && !result.value.shouldEscalate) {
       await regenerateNarrative()
@@ -555,14 +703,20 @@ async function regenerateNarrative() {
   if (!strategies.length) return
   narrativeLoading.value = true
   try {
-    const base = (() => { const env = import.meta.env.VITE_API_BASE_URL; return (env && env.startsWith('http')) ? env : window.location.origin })()
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003'
     const resp = await fetch(`${base}/api/recommend-narrative`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ strategies }),
+      body: JSON.stringify({
+        strategies,
+        returnTarget: form.value.returnExpectation || 'moderate',
+        riskLevel: form.value.riskLevel || 'R3'
+      }),
     })
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
     const data = await resp.json()
-    narrative.value = (data.data || data).narrative || '（暂无法生成分析）'
+    const text = data.data?.narrative || data.narrative || data
+    narrative.value = typeof text === 'string' ? text : '（暂无法生成分析）'
   } catch {
     narrative.value = '（AI 分析暂时不可用）'
   } finally {
@@ -581,7 +735,7 @@ async function loadAttribution() {
   try {
     const item = primaryRecs.value.find((r: any) => r.strategy.id === attributionStrategyId.value)
     if (!item) return
-    const base = (() => { const env = import.meta.env.VITE_API_BASE_URL; return (env && env.startsWith('http')) ? env : window.location.origin })()
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003'
     const resp = await fetch(`${base}/api/attribution`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -857,13 +1011,70 @@ onMounted(async () => {
 .attr-empty { margin-top: 14px; }
 .ae-hint { font-size: 12px; color: var(--muted); text-align: center; padding: 12px; line-height: 1.7; }
 
+/* ── 配置建议书 ── */
+.advice-book { padding: 0; overflow: hidden; }
+.book-cover { display: flex; justify-content: space-between; align-items: flex-start; padding: 22px 24px; background: linear-gradient(135deg, rgba(23,55,91,0.04), rgba(158,114,46,0.06)); border-bottom: 1px solid rgba(23,55,91,0.08); gap: 20px; }
+.bc-left { flex: 1; }
+.bc-left .section-eyebrow { margin-bottom: 6px; }
+.bc-title { font-size: 22px; font-weight: 800; color: var(--text); margin: 6px 0 10px; }
+.bc-meta { display: flex; gap: 16px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+.bc-stats { display: flex; gap: 20px; flex-shrink: 0; }
+.bcs-item { text-align: center; min-width: 56px; }
+.bcs-val { font-size: 28px; font-weight: 900; font-family: 'DIN Alternate','Bahnschrift',sans-serif; line-height: 1; }
+.bcs-val.primary { color: var(--gold); }
+.bcs-val.alt { color: var(--blue); }
+.bcs-val.caution { color: #f87171; }
+.bcs-lab { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
+
+.book-section { padding: 18px 24px; border-bottom: 1px solid rgba(23,55,91,0.07); }
+.book-section:last-of-type { border-bottom: none; }
+.bs-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.bs-icon { font-size: 15px; }
+
+.profile-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.ptag { padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; background: rgba(23,55,91,0.08); color: var(--blue); border: 1px solid rgba(23,55,91,0.12); }
+.profile-narrative { font-size: 13px; color: var(--muted); line-height: 1.8; margin: 0; }
+
+.config-logic { font-size: 13px; color: var(--muted); line-height: 1.9; white-space: pre-wrap; background: rgba(23,55,91,0.03); padding: 12px 14px; border-radius: 8px; }
+
+/* 策略对比表 */
+.compare-table-wrap { overflow-x: auto; }
+.compare-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.compare-table th { text-align: left; padding: 10px 12px; border-bottom: 2px solid rgba(23,55,91,0.12); background: rgba(23,55,91,0.03); }
+.compare-table th .ct-strat-name { font-weight: 700; color: var(--text); font-size: 13px; margin-bottom: 2px; }
+.compare-table th .ct-cat { font-size: 11px; color: var(--gold); text-transform: uppercase; letter-spacing: 0.08em; }
+.compare-table td { padding: 9px 12px; border-bottom: 1px solid rgba(23,55,91,0.06); vertical-align: middle; }
+.compare-table tr:last-child td { border-bottom: none; }
+.ct-metric { font-weight: 600; color: var(--muted); white-space: nowrap; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; width: 90px; }
+.ct-val { font-weight: 700; font-family: 'DIN Alternate','Bahnschrift',sans-serif; }
+.ct-val.gain { color: #c24a00; }
+.ct-val.loss { color: #b82020; }
+.ct-score { padding: 2px 8px; border-radius: 5px; font-size: 12px; font-weight: 800; }
+.ct-score.high { background: rgba(74,222,128,0.15); color: #4ade80; }
+.ct-score.mid { background: rgba(245,158,11,0.15); color: #f59e0b; }
+.ct-score.low { background: rgba(248,113,113,0.15); color: #f87171; }
+.ct-scene { font-size: 11px; font-weight: 500; color: var(--muted); line-height: 1.5; }
+
+/* 风险揭示 */
+.risk-section { background: rgba(248,113,113,0.03); }
+.risk-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.risk-card { padding: 14px 16px; border-radius: 10px; background: rgba(255,255,255,0.7); border: 1px solid rgba(248,113,113,0.15); }
+.rc-risk-name { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+.rc-worst { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 6px 10px; background: rgba(248,113,113,0.06); border-radius: 6px; }
+.rcw-label { font-size: 11px; color: var(--muted); }
+.rcw-val { font-size: 14px; font-weight: 800; font-family: 'DIN Alternate','Bahnschrift',sans-serif; }
+.rc-risk-note { font-size: 12px; color: var(--muted); line-height: 1.75; }
+.rc-risk-note strong { font-weight: 700; }
+
+.book-footer { padding: 14px 24px; border-top: 1px solid rgba(23,55,91,0.07); display: flex; justify-content: flex-end; }
+.bf-refresh { padding: 8px 18px; border-radius: 10px; border: 1px solid rgba(23,55,91,0.15); background: rgba(255,255,255,0.8); color: var(--muted); cursor: pointer; font-size: 13px; transition: all 0.2s; }
+.bf-refresh:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
+.bf-refresh:disabled { opacity: 0.5; cursor: not-allowed; }
+
 
 /* 推荐卡片定位标签 */
 .rc-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
-.rtag {
-  font-size: 10.5px; padding: 2px 7px; border-radius: 999px; font-weight: 600;
-  border: 1px solid; letter-spacing: 0.02em;
-}
+.rtag { font-size: 10.5px; padding: 2px 7px; border-radius: 999px; font-weight: 600; border: 1px solid; letter-spacing: 0.02em; }
 .rtag.risk.risk-R1 { color: #166534; border-color: #22c55e; background: rgba(34,197,94,0.08); }
 .rtag.risk.risk-R2 { color: #1e40af; border-color: #3b82f6; background: rgba(59,130,246,0.08); }
 .rtag.risk.risk-R3 { color: #92400e; border-color: #f59e0b; background: rgba(245,158,11,0.08); }
@@ -871,5 +1082,4 @@ onMounted(async () => {
 .rtag.risk.risk-R5 { color: #581c87; border-color: #a855f7; background: rgba(168,85,247,0.08); }
 .rtag.horizon { color: var(--blue); border-color: rgba(23,55,91,0.2); background: rgba(23,55,91,0.05); }
 .rtag.cat { color: #6b4226; border-color: rgba(107,66,38,0.2); background: rgba(107,66,38,0.06); }
-
 </style>
