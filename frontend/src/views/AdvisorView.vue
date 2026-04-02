@@ -671,13 +671,12 @@ async function handleAnalyze() {
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
     const data = await resp.json()
     const unwrapped = data.data || data
-    // 映射 match-products → AdvisorView 期望的字段
     result.value = {
-      recommendations: (unwrapped.recommended || []).map((p: any) => ({
-        strategy: p,
-        matchScore: p.matchScore,
-        matchReasons: p.matchReasons,
-      })),
+      profile: unwrapped.profile,
+      profileSummary: unwrapped.profileSummary,
+      recommendations: unwrapped.recommendations || [],
+      primaryCount: unwrapped.primaryCount || 0,
+      alternativeCount: unwrapped.alternativeCount || 0,
       shouldEscalate: unwrapped.shouldEscalate,
     }
     // Auto-load narrative for top strategies
