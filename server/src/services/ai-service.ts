@@ -19,7 +19,7 @@ const AI_TIMEOUT_MS = 300000
 
 function getProxyAgent() {
   // 优先使用环境变量，回退到本地代理
-  const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY || 'http://127.0.0.1:7897'
+  const proxyUrl = process.env.MODEL_PROXY_URL || process.env.HTTPS_PROXY || process.env.HTTP_PROXY
   if (!proxyUrl) return undefined
   try {
     return new HttpsProxyAgent(proxyUrl)
@@ -62,7 +62,7 @@ async function requestModel(prompt: string, systemContent: string, temperature: 
     } catch (err: any) {
       clearTimeout(timer)
       if (err.name === 'AbortError' || String(err.message).includes('aborted')) {
-        throw new Error(`AI 请求超时（${AI_TIMEOUT_MS / 1000}s），请重试`)
+        throw new Error(`AI 请求超时，请重试`)
       }
       throw err
     }
@@ -106,7 +106,7 @@ async function requestModel(prompt: string, systemContent: string, temperature: 
       })
 
       req.on('error', (err) => reject(err))
-      req.on('timeout', () => { req.destroy(); reject(new Error(`AI 请求超时（${AI_TIMEOUT_MS / 1000}s），请重试`)) })
+      req.on('timeout', () => { req.destroy(); reject(new Error(`AI 请求超时，请重试`)) })
 
       req.write(body)
       req.end()
