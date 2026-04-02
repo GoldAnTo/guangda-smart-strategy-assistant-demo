@@ -33,6 +33,8 @@ router.get('/api/attribution/quicktest', (_req, res) => {
 // POST /api/attribution — 归因分析
 router.post('/api/attribution', async (req, res) => {
   const requestId = res.locals.requestId
+  // AI 调用可能需要 30+ 秒，覆盖默认 20 秒超时
+  req.setTimeout?.(0)
 
   try {
     const { strategy, period = '近一月', periodReturn } = req.body as {
