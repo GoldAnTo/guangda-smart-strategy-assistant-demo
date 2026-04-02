@@ -315,6 +315,10 @@
                       <span class="rc-mv">{{ item.strategy.investmentHorizonDisplay }}</span>
                       <span class="rc-ml">投资期限</span>
                     </div>
+                                    <div class="rc-tags">
+                    <span class="rtag risk" :class="'risk-' + (item.strategy.riskLevel || '')">{{ item.strategy.riskLevelDisplay || item.strategy.riskLevel }}</span>
+                    <span class="rtag horizon" v-if="item.strategy.investmentHorizonDisplay">{{ item.strategy.investmentHorizonDisplay }}</span>
+                    <span class="rtag cat" v-if="item.strategy.navCategory">{{ item.strategy.navCategory }}</span>
                   </div>
                   <div class="rc-reasons">
                     <span
@@ -852,4 +856,20 @@ onMounted(async () => {
 
 .attr-empty { margin-top: 14px; }
 .ae-hint { font-size: 12px; color: var(--muted); text-align: center; padding: 12px; line-height: 1.7; }
+
+
+/* 推荐卡片定位标签 */
+.rc-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.rtag {
+  font-size: 10.5px; padding: 2px 7px; border-radius: 999px; font-weight: 600;
+  border: 1px solid; letter-spacing: 0.02em;
+}
+.rtag.risk.risk-R1 { color: #166534; border-color: #22c55e; background: rgba(34,197,94,0.08); }
+.rtag.risk.risk-R2 { color: #1e40af; border-color: #3b82f6; background: rgba(59,130,246,0.08); }
+.rtag.risk.risk-R3 { color: #92400e; border-color: #f59e0b; background: rgba(245,158,11,0.08); }
+.rtag.risk.risk-R4 { color: #9f1239; border-color: #f43f5e; background: rgba(244,63,94,0.08); }
+.rtag.risk.risk-R5 { color: #581c87; border-color: #a855f7; background: rgba(168,85,247,0.08); }
+.rtag.horizon { color: var(--blue); border-color: rgba(23,55,91,0.2); background: rgba(23,55,91,0.05); }
+.rtag.cat { color: #6b4226; border-color: rgba(107,66,38,0.2); background: rgba(107,66,38,0.06); }
+
 </style>
