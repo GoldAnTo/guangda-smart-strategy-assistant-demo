@@ -663,10 +663,10 @@ async function handleAnalyze() {
 
   try {
     const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003'
-    const resp = await fetch(`${base}/api/match-products`, {
+    const resp = await fetch(`${base}/api/recommend`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ profile: form.value }),
+      body: JSON.stringify(form.value),
     })
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
     const data = await resp.json()
