@@ -672,8 +672,7 @@ async function generateAIInterpretation() {
         portfolioSharpe: r.portfolioSharpe,
       }),
     })
-    const data = await response.json() as Record<string, unknown>
-    const content = (data.data as Record<string, string>)?.narrative as string
+    const content = await response.text()
     aiInterpretation.value = content || '（暂时无法生成解读）'
   } catch {
     aiInterpretation.value = '（AI 解读暂时不可用，请确保 AI 服务已启动）'

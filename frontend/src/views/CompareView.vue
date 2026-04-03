@@ -1026,8 +1026,8 @@ async function loadPortfolioNarrative() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ components, portfolioReturn: parseFloat(portfolioMetrics.value.return), portfolioMaxDrawdown: parseFloat(portfolioMetrics.value.drawdown), portfolioSharpe: parseFloat(portfolioMetrics.value.sharpe) }),
     })
-    const data = await resp.json()
-    portfolioNarrative.value = (data.data || data).narrative || '（暂无法生成解读）'
+    const text = await resp.text()
+    portfolioNarrative.value = text || '（暂无法生成解读）'
   } catch {
     portfolioNarrative.value = '（AI 组合解读暂时不可用）'
   } finally {
