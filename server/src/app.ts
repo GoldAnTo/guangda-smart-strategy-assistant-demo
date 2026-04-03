@@ -23,7 +23,7 @@ app.use((req, res, next) => {
   // Force UTF-8 JSON responses to avoid mojibake in downstream clients.
   res.setHeader('Content-Type', 'application/json; charset=utf-8')
   res.locals.requestId = createRequestId()
-  req.setTimeout?.(20000)
+  req.setTimeout?.(200000) // 全局超时改短，实际以 AI 调用超时为准
   next()
 })
 

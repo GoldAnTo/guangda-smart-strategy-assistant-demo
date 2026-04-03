@@ -143,6 +143,154 @@ function generateAttribution(strategy: {
   }
 }
 
+// POST /api/attribution/ai — AI 归因分析（Node 原生 fetch，更稳定）
+router.post('/api/attribution/ai', async (req, res) => {
+  const requestId = res.locals.requestId
+  req.setTimeout?.(0)
+
+  try {
+    const { strategy, period = '近一月', periodReturn } = req.body as {
+      strategy: {
+        name: string
+        navCategory: string
+        annualReturn: number
+        winRate: number
+        maxDrawdown: number
+        volatility: number
+        sharpe: number
+        riskLevel: string
+        investmentHorizon?: string
+        logicSummary?: string
+        tags?: string[]
+      }
+      period?: string
+      periodReturn?: number
+    }
+
+    if (!strategy?.name) {
+      res.status(400).json(errorResponse('strategy 对象不能为空', requestId))
+      return
+    }
+
+    const r = strategy
+    const pr = periodReturn ?? r.annualReturn
+    const volatilityValue = r.volatilityValue ?? (typeof r.volatility === 'number' ? r.volatility : 0)
+    const riskMap: Record<string, string> = {
+      R1: '低风险', R2: '中低风险', R3: '中等风险', R4: '中高风险', R5: '高风险'
+    }
+    const riskText = riskMap[r.riskLevel] || r.riskLevel || '中等风险'
+
+    const prompt = `你是一名资深基金策略归因分析专家。请对以下策略在${period}期间的表现进行深度归因分析，必须基于给出的具体数据给出有洞察的分析，不要泛泛而谈。返回结构化 JSON。
+
+【策略详细信息】
+- 策略名称：${r.name}
+- 资产类别：${r.navCategory}
+- 风险等级：${riskText}
+- 投资期限：${r.investmentHorizon || '中期'}
+- 近${period}收益：${pr >= 0 ? '+' : ''}${pr.toFixed(2)}%
+- 年化收益率：${r.annualReturn >= 0 ? '+' : ''}${r.annualReturn.toFixed(2)}%
+- 胜率：${r.winRate != null ? r.winRate.toFixed(0) + '%' : '—'}
+- 最大回撤：${r.maxDrawdown != null ? '-' + r.maxDrawdown.toFixed(2) + '%' : '—'}
+- 波动率：${volatilityValue > 0 ? volatilityValue.toFixed(2) + '%' : '—'}
+- 夏普比率：${r.sharpe != null ? r.sharpe.toFixed(2) : '—'}
+- 核心策略逻辑：${r.logicSummary || '暂无说明'}
+- 策略标签：${(r.tags || []).join('、')}
+
+返回纯 JSON：
+{"marketInsight":"...","strategyDriver":"...","riskRewardAnalysis":"...","configValue":"...","summary":"...","riskWarning":"..."}`
+
+    const url = process.env.MODEL_API_URL || 'https://zxcode.vip'
+    const key = process.env.MODEL_API_KEY
+    const model = process.env.MODEL_NAME || 'gpt-5.4'
+
+    if (!key) {
+      res.status(500).json(errorResponse('MODEL_API_KEY not configured', requestId))
+      return
+    }
+
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 180_000) // 3分钟
+
+    try {
+      const response = await fetch(`${url}/v1/responses`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${key}`
+        },
+        body: JSON.stringify({
+          model,
+          input: prompt,
+          max_tokens: 2000
+        }),
+        signal: controller.signal as any
+      } as any)
+      clearTimeout(timeout)
+
+      if (!response.ok) {
+        const text = await response.text()
+        res.status(502).json(errorResponse(`AI API error: ${response.status} ${text.slice(0, 200)}`, requestId))
+        return
+      }
+
+      const json = await response.json() as any
+      // 解析 Responses API 输出格式
+      let raw = ''
+      if (json.output && Array.isArray(json.output)) {
+        const msg = json.output.find((b: any) => b.type === 'message')
+        if (msg?.content) {
+          const textBlock = msg.content.find((b: any) => b.type === 'output_text' || b.type === 'text')
+          raw = textBlock?.text || ''
+        }
+      }
+
+      if (!raw) {
+        raw = JSON.stringify(json)
+      }
+
+      // 解析 JSON
+      let parsed: any = {}
+      try {
+        const jsonMatch =
+          raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/) ||
+          raw.match(/```\s*([\s\S]*?)\s*```/) ||
+          raw.match(/^\s*(\{[\s\S]*\})\s*$/)
+        const jsonStr = jsonMatch ? jsonMatch[1] : raw
+        parsed = JSON.parse(jsonStr.trim())
+      } catch {
+        res.status(500).json(errorResponse('AI 返回格式异常，请重试', requestId))
+        return
+      }
+
+      const data = {
+        strategyName: r.name,
+        period,
+        periodReturn: pr,
+        annualReturn: r.annualReturn,
+        maxDrawdown: r.maxDrawdown,
+        winRate: r.winRate,
+        volatility: volatilityValue,
+        sharpe: r.sharpe,
+        riskLevel: riskText,
+        ...parsed,
+      }
+      res.json(successResponse(data, requestId))
+
+    } catch (err: any) {
+      clearTimeout(timeout)
+      if (err.name === 'AbortError' || err.message.includes('aborted')) {
+        res.status(504).json(errorResponse('AI 分析超时（3分钟），请重试或使用规则归因', requestId))
+        return
+      }
+      res.status(500).json(errorResponse('AI 分析失败：' + err.message, requestId))
+    }
+
+  } catch (err: any) {
+    console.error(`[${requestId}] attribution/ai error:`, err.message)
+    res.status(500).json(errorResponse('归因分析失败：' + (err.message || '未知错误'), requestId))
+  }
+})
+
 // POST /api/attribution — 归因分析（纯规则引擎，无需 AI）
 router.post('/api/attribution', (req, res) => {
   const requestId = res.locals.requestId

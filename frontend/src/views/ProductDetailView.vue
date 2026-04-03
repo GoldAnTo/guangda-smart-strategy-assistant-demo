@@ -618,9 +618,12 @@ async function loadAttr() {
   attrResult.value = null
   try {
     const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003'
-    const resp = await fetch(`${base}/api/attribution`, {
+
+    // 优先 AI 归因（35秒超时），失败则降级到规则引擎
+    const aiResp = await fetch(`${base}/api/attribution/ai`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(180000),
       body: JSON.stringify({
         strategy: {
           name: strategy.value.name,
@@ -638,8 +641,34 @@ async function loadAttr() {
         period: attrPeriods.find(p => p.key === attrPeriod.value)?.label || '近一月',
       }),
     })
-    const data = await resp.json()
-    attrResult.value = data.data || data
+    const aiData = await aiResp.json()
+    if (aiResp.ok && aiData.success) {
+      attrResult.value = aiData.data || aiData
+    } else {
+      // AI 失败，降级到规则引擎
+      const fallbackResp = await fetch(`${base}/api/attribution`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          strategy: {
+            name: strategy.value.name,
+            navCategory: strategy.value.navCategory,
+            annualReturn: strategy.value.annualReturn,
+            winRate: strategy.value.winRate,
+            maxDrawdown: (strategy.value as any).maxDrawdown,
+            volatility: (strategy.value as any).volatilityValue,
+            sharpe: (strategy.value as any).sharpe,
+            riskLevel: (strategy.value as any).riskLevel || 'R3',
+            investmentHorizon: (strategy.value as any).investmentHorizon || 'medium_term',
+            logicSummary: strategy.value.logicSummary,
+            tags: strategy.value.tags || [],
+          },
+          period: attrPeriods.find(p => p.key === attrPeriod.value)?.label || '近一月',
+        }),
+      })
+      const fallbackData = await fallbackResp.json()
+      attrResult.value = fallbackData.data || fallbackData
+    }
   } catch {
     attrResult.value = { analysis: '（归因分析暂时不可用）', strategyName: strategy.value?.name, period: attrPeriods.find(p => p.key === attrPeriod.value)?.label, periodReturn: strategy.value?.annualReturn || 0 }
   } finally {

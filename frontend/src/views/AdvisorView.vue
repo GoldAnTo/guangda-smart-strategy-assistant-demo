@@ -735,15 +735,27 @@ async function loadAttribution() {
     const item = primaryRecs.value.find((r: any) => r.strategy.id === attributionStrategyId.value)
     if (!item) return
     const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003'
-    const resp = await fetch(`${base}/api/attribution`, {
+
+    // 优先调用 AI 归因（30秒超时），失败则降级到规则归因
+    const aiResp = await fetch(`${base}/api/attribution/ai`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(180000),
       body: JSON.stringify({ strategy: item.strategy }),
     })
-    const data = await resp.json()
-    attributionResult.value = data.data || data
-  } catch {
-    attributionResult.value = { analysis: '（归因分析暂时不可用）', strategyName: '', period: '近一月', periodReturn: 0 }
+    const aiData = await aiResp.json()
+    if (aiResp.ok && aiData.success) {
+      attributionResult.value = aiData.data || aiData
+    } else {
+      // AI 失败，降级到规则引擎
+      const fallbackResp = await fetch(`${base}/api/attribution`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ strategy: item.strategy }),
+      })
+      const fallbackData = await fallbackResp.json()
+      attributionResult.value = fallbackData.data || fallbackData
+    }
   } finally {
     attributionLoading.value = false
   }
