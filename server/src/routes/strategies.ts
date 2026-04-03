@@ -33,7 +33,7 @@ function findStrategy(id: string): StrategyData | undefined {
   return strategiesBySeed.get(id) || strategiesById.get(id)
 }
 
-const periodFilters: Record<string, (pts: { date: string }[]) => { date: string; ret: number; benchmark: number }[]> = {
+const periodFilters: Record<string, (pts: { date: string }[]) => { date: string }[]> = {
   week: pts => pts.slice(-5),
   month: pts => pts.slice(-22),
   quarter: pts => pts.slice(-65),

@@ -1,6 +1,6 @@
 {
-  "version": "2.0",
-  "exported_at": "2026-03-31",
+  "version": "3.0",
+  "exported_at": "2026-04-01",
   "strategies": [
     {
       "id": "GS-55",
@@ -8,7 +8,7 @@
       "name": "低价转债",
       "navCategory": "转债",
       "category": "转债",
-      "productType": "转债",
+      "productType": "低价转债",
       "riskLevel": "R3",
       "riskLevelDisplay": "中等风险",
       "investmentHorizon": "medium_term",
@@ -17,26 +17,26 @@
       "liquidityDisplay": "中等流动性",
       "returnExpectation": "balanced",
       "returnExpectationDisplay": "追求平衡收益",
-      "volatility": "medium",
-      "volatilityDisplay": "中等波动",
+      "volatility": "low",
+      "volatilityDisplay": "中低波动",
       "structure": "单策略",
       "owner": "固收-陈侃",
       "startDate": "2017-01-01",
       "logicSummary": "以绝对阈值筛选转债标的，低转股溢价且低纯债溢价标的，等待个券正股波动率上行。基于符合条件的个股数设仓位。",
       "benchmarkName": "理财收益",
-      "positioning": "",
+      "positioning": "低价券，下行风险较小",
       "tags": [
         "量化",
         "中低波动",
         "低价券"
       ],
-      "outlookStars": 5,
+      "outlookStars": 4,
       "annualReturn": 12.28,
-      "winRate": 60.0,
+      "winRate": 60,
       "maxDrawdown": 8.05,
       "volatilityValue": 6.12,
       "sharpe": 1.5252,
-      "monthlyWinRate": 60.0,
+      "monthlyWinRate": 60,
       "suitableFor": [],
       "notSuitableFor": [],
       "matchKeywords": [
@@ -44,7 +44,12 @@
         "中低波动",
         "低价券"
       ],
-      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。"
+      "skDate": "20230803",
+      "skFile": null,
+      "fileName": null,
+      "fileDate": null,
+      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。",
+      "strategyQuarterRate": "-0.09%"
     },
     {
       "id": "GS-56",
@@ -52,13 +57,13 @@
       "name": "超预期精选",
       "navCategory": "股票",
       "category": "股票",
-      "productType": "股票",
+      "productType": "成长",
       "riskLevel": "R5",
       "riskLevelDisplay": "高风险",
       "investmentHorizon": "medium_term",
       "investmentHorizonDisplay": "中期配置",
-      "liquidity": "medium",
-      "liquidityDisplay": "中等流动性",
+      "liquidity": "high",
+      "liquidityDisplay": "高流动性",
       "returnExpectation": "balanced",
       "returnExpectationDisplay": "追求平衡收益",
       "volatility": "medium",
@@ -68,7 +73,7 @@
       "startDate": "2017-01-01",
       "logicSummary": "关注业绩披露时点后的分析师点评，筛选超预期个股。质量、增速、估值综合评选，并剔除短期极端动量、分析师高频次覆盖，优选Top25。",
       "benchmarkName": "中证500",
-      "positioning": "机构风格、增量博弈市场",
+      "positioning": "",
       "tags": [
         "量化",
         "中盘动量",
@@ -76,14 +81,13 @@
       ],
       "outlookStars": 5,
       "annualReturn": 21.08,
-      "winRate": 88.46,
+      "winRate": 100,
       "maxDrawdown": 19.57,
       "volatilityValue": 14.13,
       "sharpe": 1.0773,
-      "monthlyWinRate": 100.0,
+      "monthlyWinRate": 88.46,
       "suitableFor": [
-        "机构风格",
-        "增量博弈市场"
+        "机构风格、增量博弈市场"
       ],
       "notSuitableFor": [],
       "matchKeywords": [
@@ -91,7 +95,12 @@
         "中盘动量",
         "机构风格"
       ],
-      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。"
+      "skDate": "20230803",
+      "skFile": "1",
+      "fileName": "chaoyuqi.mov",
+      "fileDate": "2023-06-08",
+      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。",
+      "strategyQuarterRate": "-8.89%"
     },
     {
       "id": "GS-57",
@@ -99,23 +108,23 @@
       "name": "小盘新星",
       "navCategory": "股票",
       "category": "股票",
-      "productType": "股票",
+      "productType": "成长",
       "riskLevel": "R5",
       "riskLevelDisplay": "高风险",
       "investmentHorizon": "medium_term",
       "investmentHorizonDisplay": "中期配置",
-      "liquidity": "medium",
-      "liquidityDisplay": "中等流动性",
+      "liquidity": "high",
+      "liquidityDisplay": "高流动性",
       "returnExpectation": "balanced",
       "returnExpectationDisplay": "追求平衡收益",
-      "volatility": "medium",
-      "volatilityDisplay": "中等波动",
+      "volatility": "high",
+      "volatilityDisplay": "中高波动",
       "structure": "单策略",
       "owner": "固收-陈侃",
       "startDate": "2017-01-01",
       "logicSummary": "以定量手段定期更新的卖方新关注冷门股，基于质量、估值、成长，三因素进一步优选。基于符合条件的个股数设仓位。",
       "benchmarkName": "中证500",
-      "positioning": "小微盘、反转风格",
+      "positioning": "",
       "tags": [
         "量化",
         "小盘反转",
@@ -123,14 +132,13 @@
       ],
       "outlookStars": 5,
       "annualReturn": 25.72,
-      "winRate": 73.08,
+      "winRate": 83.33,
       "maxDrawdown": 35.23,
       "volatilityValue": 16.51,
       "sharpe": 0.7301,
-      "monthlyWinRate": 83.33,
+      "monthlyWinRate": 73.08,
       "suitableFor": [
-        "小微盘",
-        "反转风格"
+        "小微盘、反转风格"
       ],
       "notSuitableFor": [],
       "matchKeywords": [
@@ -138,7 +146,12 @@
         "小盘反转",
         "基本面"
       ],
-      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。"
+      "skDate": "20230803",
+      "skFile": null,
+      "fileName": null,
+      "fileDate": null,
+      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。",
+      "strategyQuarterRate": "-8.75%"
     },
     {
       "id": "GS-58",
@@ -146,23 +159,23 @@
       "name": "非周期行业红利",
       "navCategory": "股票",
       "category": "股票",
-      "productType": "股票",
+      "productType": "价值",
       "riskLevel": "R5",
       "riskLevelDisplay": "高风险",
       "investmentHorizon": "medium_term",
       "investmentHorizonDisplay": "中期配置",
-      "liquidity": "medium",
-      "liquidityDisplay": "中等流动性",
+      "liquidity": "high",
+      "liquidityDisplay": "高流动性",
       "returnExpectation": "balanced",
       "returnExpectationDisplay": "追求平衡收益",
-      "volatility": "medium",
-      "volatilityDisplay": "中等波动",
+      "volatility": "low",
+      "volatilityDisplay": "中低波动",
       "structure": "单策略",
       "owner": "固收-陈侃",
       "startDate": "2017-01-01",
       "logicSummary": "弱周期行业内选择分红稳定、股息率高、盈利趋势好的公司。\n单票设置权重上限，自下而上形成动态仓位。",
       "benchmarkName": "理财收益",
-      "positioning": "适合震荡下行周期、红利风格行情，无产业主线的周期",
+      "positioning": "剔除周期后的稳定行业业绩波动小、分红稳定性更高；\n红利风格下行风险小，盈利趋势提供上行动力，高股息选股从性价比轮动角度增厚收益；\n估值逻辑，自下而上形成仓位，历史上较好控制回撤。",
       "tags": [
         "量化",
         "低股债相关性",
@@ -170,14 +183,13 @@
       ],
       "outlookStars": 5,
       "annualReturn": 16.3,
-      "winRate": 57.69,
+      "winRate": 83.33,
       "maxDrawdown": 12.7,
       "volatilityValue": 9.85,
       "sharpe": 1.2832,
-      "monthlyWinRate": 83.33,
+      "monthlyWinRate": 57.69,
       "suitableFor": [
-        "适合震荡下行周期",
-        "红利风格行情，无产业主线的周期"
+        "适合震荡下行周期、红利风格行情，无产业主线的周期\n"
       ],
       "notSuitableFor": [],
       "matchKeywords": [
@@ -185,7 +197,12 @@
         "低股债相关性",
         "基本面"
       ],
-      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。"
+      "skDate": "20230803",
+      "skFile": null,
+      "fileName": null,
+      "fileDate": null,
+      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。",
+      "strategyQuarterRate": "-1.24%"
     },
     {
       "id": "GS-59",
@@ -193,37 +210,37 @@
       "name": "大盘雪球",
       "navCategory": "股票",
       "category": "股票",
-      "productType": "股票",
+      "productType": "价值",
       "riskLevel": "R5",
       "riskLevelDisplay": "高风险",
       "investmentHorizon": "medium_term",
       "investmentHorizonDisplay": "中期配置",
-      "liquidity": "medium",
-      "liquidityDisplay": "中等流动性",
+      "liquidity": "high",
+      "liquidityDisplay": "高流动性",
       "returnExpectation": "balanced",
       "returnExpectationDisplay": "追求平衡收益",
-      "volatility": "medium",
-      "volatilityDisplay": "中等波动",
+      "volatility": "low",
+      "volatilityDisplay": "中低波动",
       "structure": "单策略",
       "owner": "固收-陈韵骋",
       "startDate": "2012-01-01",
       "logicSummary": "在大盘股内选择低级估值、稳定Roe个股。根据个股估值变化和低估值样本整体时序变化设定仓位，低买高卖。极低估值守住下行风险，波动中获取低买高卖收益。",
       "benchmarkName": "理财收益",
-      "positioning": "适合于任何时间",
+      "positioning": "个股低估值控风险，整体根据估值与趋势控仓位。",
       "tags": [
         "量化",
         "低估值",
         "低Beta"
       ],
-      "outlookStars": 5,
+      "outlookStars": 4,
       "annualReturn": 15.37,
-      "winRate": 73.08,
+      "winRate": 83.33,
       "maxDrawdown": 10.48,
       "volatilityValue": 8.93,
       "sharpe": 1.4673,
-      "monthlyWinRate": 83.33,
+      "monthlyWinRate": 73.08,
       "suitableFor": [
-        "适合于任何时间"
+        "适合于任何时间\n"
       ],
       "notSuitableFor": [],
       "matchKeywords": [
@@ -231,7 +248,12 @@
         "低估值",
         "低Beta"
       ],
-      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。"
+      "skDate": "20230803",
+      "skFile": null,
+      "fileName": null,
+      "fileDate": null,
+      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。",
+      "strategyQuarterRate": "-0.83%"
     },
     {
       "id": "GS-60",
@@ -239,35 +261,35 @@
       "name": "小盘雪球",
       "navCategory": "股票",
       "category": "股票",
-      "productType": "股票",
+      "productType": "价值",
       "riskLevel": "R5",
       "riskLevelDisplay": "高风险",
       "investmentHorizon": "medium_term",
       "investmentHorizonDisplay": "中期配置",
-      "liquidity": "medium",
-      "liquidityDisplay": "中等流动性",
+      "liquidity": "high",
+      "liquidityDisplay": "高流动性",
       "returnExpectation": "balanced",
       "returnExpectationDisplay": "追求平衡收益",
-      "volatility": "medium",
-      "volatilityDisplay": "中等波动",
+      "volatility": "low",
+      "volatilityDisplay": "中低波动",
       "structure": "单策略",
       "owner": "固收-陈韵骋",
       "startDate": "2016-01-01",
       "logicSummary": "通过DCF模型选取价值稳定的个股，通过雪球机制对组合进行仓位管理。",
       "benchmarkName": "理财收益",
-      "positioning": "小盘价值行情（市场上该策略稀缺）",
+      "positioning": "雪球策略",
       "tags": [
         "价值",
         "小盘",
         "高抛低吸"
       ],
-      "outlookStars": 5,
+      "outlookStars": 4,
       "annualReturn": 14.84,
-      "winRate": 80.77,
+      "winRate": 83.33,
       "maxDrawdown": 14.41,
       "volatilityValue": 6.7,
       "sharpe": 1.0302,
-      "monthlyWinRate": 83.33,
+      "monthlyWinRate": 80.77,
       "suitableFor": [
         "小盘价值行情（市场上该策略稀缺）"
       ],
@@ -277,7 +299,12 @@
         "小盘",
         "高抛低吸"
       ],
-      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。"
+      "skDate": "20230803",
+      "skFile": null,
+      "fileName": null,
+      "fileDate": null,
+      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。",
+      "strategyQuarterRate": "-9.76%"
     },
     {
       "id": "GS-61",
@@ -285,17 +312,17 @@
       "name": "中证1000深度学习",
       "navCategory": "股票",
       "category": "股票",
-      "productType": "股票",
+      "productType": "成长",
       "riskLevel": "R5",
       "riskLevelDisplay": "高风险",
       "investmentHorizon": "medium_term",
       "investmentHorizonDisplay": "中期配置",
-      "liquidity": "medium",
-      "liquidityDisplay": "中等流动性",
+      "liquidity": "high",
+      "liquidityDisplay": "高流动性",
       "returnExpectation": "balanced",
       "returnExpectationDisplay": "追求平衡收益",
-      "volatility": "medium",
-      "volatilityDisplay": "中等波动",
+      "volatility": "high",
+      "volatilityDisplay": "中高波动",
       "structure": "单策略",
       "owner": "固收-陈韵骋",
       "startDate": "2013-01-01",
@@ -311,11 +338,11 @@
       ],
       "outlookStars": 5,
       "annualReturn": 46.53,
-      "winRate": 96.15,
+      "winRate": 100,
       "maxDrawdown": 21.29,
       "volatilityValue": 18.51,
       "sharpe": 2.1857,
-      "monthlyWinRate": 100.0,
+      "monthlyWinRate": 96.15,
       "suitableFor": [],
       "notSuitableFor": [],
       "matchKeywords": [
@@ -325,7 +352,12 @@
         "高估值",
         "高波动"
       ],
-      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。"
+      "skDate": "20230803",
+      "skFile": null,
+      "fileName": null,
+      "fileDate": null,
+      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。",
+      "strategyQuarterRate": "-7.52%"
     },
     {
       "id": "GS-78",
@@ -334,35 +366,35 @@
       "navCategory": "股指期货",
       "category": "股指期货",
       "productType": "股指期货",
-      "riskLevel": "R4",
-      "riskLevelDisplay": "中高风险",
+      "riskLevel": "R5",
+      "riskLevelDisplay": "高风险",
       "investmentHorizon": "medium_term",
       "investmentHorizonDisplay": "中期配置",
-      "liquidity": "medium",
-      "liquidityDisplay": "中等流动性",
+      "liquidity": "high",
+      "liquidityDisplay": "高流动性",
       "returnExpectation": "balanced",
       "returnExpectationDisplay": "追求平衡收益",
-      "volatility": "medium",
-      "volatilityDisplay": "中等波动",
+      "volatility": "high",
+      "volatilityDisplay": "中高波动",
       "structure": "单策略",
       "owner": "衍生品-楼宝梁",
       "startDate": "2018-01-01",
       "logicSummary": "1.首先构建个股行为金融价量因子，然后基于成分股等权合成宽基指数的价量因子。\n2.根据价量因子打分构建IF,IC,IM三个股指期货的多空组合。\n3.对多个多空组合信号按照一定的权重叠加。4.选择因子值最大的宽基指数配置。",
       "benchmarkName": "理财收益",
-      "positioning": "股票市场高波动行情中超额收益更高。\n大小盘风格差异较大时超额收益较高。",
+      "positioning": "持仓时间偏短，短期超额大幅回撤概率较小。",
       "tags": [
         "相对收益",
         "高频信号",
         "风格跟随",
         "指数增强"
       ],
-      "outlookStars": 5,
+      "outlookStars": 3,
       "annualReturn": 9.85,
-      "winRate": 54.55,
+      "winRate": 60,
       "maxDrawdown": 35.14,
       "volatilityValue": 18.22,
       "sharpe": 0.2804,
-      "monthlyWinRate": 60.0,
+      "monthlyWinRate": 54.55,
       "suitableFor": [
         "股票市场高波动行情中超额收益更高。\n大小盘风格差异较大时超额收益较高。"
       ],
@@ -373,7 +405,12 @@
         "风格跟随",
         "指数增强"
       ],
-      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。"
+      "skDate": "20230803",
+      "skFile": null,
+      "fileName": null,
+      "fileDate": null,
+      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。",
+      "strategyQuarterRate": "0.00%"
     },
     {
       "id": "GS-80",
@@ -381,7 +418,7 @@
       "name": "行业轮动相对收益",
       "navCategory": "ETF",
       "category": "ETF",
-      "productType": "etf",
+      "productType": "ETF",
       "riskLevel": "R4",
       "riskLevelDisplay": "中高风险",
       "investmentHorizon": "medium_term",
@@ -390,26 +427,26 @@
       "liquidityDisplay": "高流动性",
       "returnExpectation": "balanced",
       "returnExpectationDisplay": "追求平衡收益",
-      "volatility": "medium",
-      "volatilityDisplay": "中等波动",
+      "volatility": "high",
+      "volatilityDisplay": "中高波动",
       "structure": "单策略",
       "owner": "多策略-姚育婷",
       "startDate": "2017-01-01",
       "logicSummary": "策略根据各行业景气度变化、机构资金偏好、市场微观结构、拥挤度等维度指标，优选高景气度、资金追逐、趋势强且拥挤度低的行业，选择相应的ETF进行轮动配置。",
       "benchmarkName": "中证800",
-      "positioning": "策略适用于beta行情，高波动行情收益更高。",
+      "positioning": "策略是相对收益策略，具有一定的回撤。",
       "tags": [
         "相对收益",
         "周频换仓",
         "行业轮动"
       ],
-      "outlookStars": 5,
+      "outlookStars": 4,
       "annualReturn": 14.43,
-      "winRate": 73.08,
+      "winRate": 83.33,
       "maxDrawdown": 23.59,
       "volatilityValue": 16.71,
       "sharpe": 0.6117,
-      "monthlyWinRate": 83.33,
+      "monthlyWinRate": 73.08,
       "suitableFor": [
         "策略适用于beta行情，高波动行情收益更高。"
       ],
@@ -419,7 +456,12 @@
         "周频换仓",
         "行业轮动"
       ],
-      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。"
+      "skDate": "20230803",
+      "skFile": null,
+      "fileName": null,
+      "fileDate": null,
+      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。",
+      "strategyQuarterRate": "-9.31%"
     },
     {
       "id": "GS-81",
@@ -427,7 +469,7 @@
       "name": "行业轮动绝对收益",
       "navCategory": "ETF",
       "category": "ETF",
-      "productType": "etf",
+      "productType": "ETF",
       "riskLevel": "R4",
       "riskLevelDisplay": "中高风险",
       "investmentHorizon": "medium_term",
@@ -443,19 +485,19 @@
       "startDate": "2018-01-01",
       "logicSummary": "策略是指数的时序策略，通过反弹指标、拥挤度等维度刻画指数超跌反弹区间、趋势动量区间，获取绝对收益。",
       "benchmarkName": "中证800",
-      "positioning": "策略适用于beta行情，高波动行情收益更高。",
+      "positioning": "策略自带择时，通过仓位控制回撤。",
       "tags": [
         "多头绝对收益",
         "卡玛高",
         "稳健权益型策略"
       ],
-      "outlookStars": 5,
+      "outlookStars": 4,
       "annualReturn": 15.64,
-      "winRate": 57.69,
+      "winRate": 66.67,
       "maxDrawdown": 17.75,
       "volatilityValue": 11.22,
       "sharpe": 0.8813,
-      "monthlyWinRate": 66.67,
+      "monthlyWinRate": 57.69,
       "suitableFor": [
         "策略适用于beta行情，高波动行情收益更高。"
       ],
@@ -465,7 +507,12 @@
         "卡玛高",
         "稳健权益型策略"
       ],
-      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。"
+      "skDate": "20230803",
+      "skFile": null,
+      "fileName": null,
+      "fileDate": null,
+      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。",
+      "strategyQuarterRate": "-5.41%"
     },
     {
       "id": "GS-82",
@@ -482,26 +529,26 @@
       "liquidityDisplay": "中等流动性",
       "returnExpectation": "balanced",
       "returnExpectationDisplay": "追求平衡收益",
-      "volatility": "medium",
-      "volatilityDisplay": "中等波动",
+      "volatility": "low",
+      "volatilityDisplay": "中低波动",
       "structure": "单策略",
       "owner": "多策略-夏莉",
       "startDate": "2016-01-01",
       "logicSummary": "根据美债、汇率与VIX等指标，根据利率和汇率方向，和避险指标的阈值构建黄金的择时框架",
       "benchmarkName": "华安黄金ETF",
-      "positioning": "适用于预期联储降息时期（降息美元扩张时期），基本面对应非危机的正常衰退时期",
+      "positioning": "趋势指标买入偏右侧，卖出偏左侧，可以控制回撤",
       "tags": [
         "低股债相关性收益来源",
         "更多超额收益",
         "且最大回撤可控"
       ],
-      "outlookStars": 5,
+      "outlookStars": 3,
       "annualReturn": 9.44,
-      "winRate": 50.0,
+      "winRate": 42.86,
       "maxDrawdown": 9.19,
       "volatilityValue": 7.09,
       "sharpe": 1.027,
-      "monthlyWinRate": 42.86,
+      "monthlyWinRate": 50,
       "suitableFor": [
         "适用于预期联储降息时期（降息美元扩张时期），基本面对应非危机的正常衰退时期"
       ],
@@ -511,7 +558,12 @@
         "更多超额收益",
         "且最大回撤可控"
       ],
-      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。"
+      "skDate": "20230803",
+      "skFile": null,
+      "fileName": null,
+      "fileDate": null,
+      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。",
+      "strategyQuarterRate": "-4.63%"
     },
     {
       "id": "GS-83",
@@ -522,32 +574,32 @@
       "productType": "混合型",
       "riskLevel": "R3",
       "riskLevelDisplay": "中等风险",
-      "investmentHorizon": "long_term",
-      "investmentHorizonDisplay": "长期配置",
+      "investmentHorizon": "medium_term",
+      "investmentHorizonDisplay": "中期配置",
       "liquidity": "medium",
       "liquidityDisplay": "中等流动性",
       "returnExpectation": "balanced",
       "returnExpectationDisplay": "追求平衡收益",
-      "volatility": "medium",
-      "volatilityDisplay": "中等波动",
+      "volatility": "low",
+      "volatilityDisplay": "低波动",
       "structure": "多策略",
       "owner": "多策略-夏莉",
       "startDate": "2016-01-01",
       "logicSummary": "1、全天候策略的投资范围涉及股债商三类，首先从风险平价的角度确定股、债、商三类资产的中枢仓位。2、其次，为了在提高胜率的同时降低波动性，策略在第二层根据宏观指标进行择时提高胜率。",
       "benchmarkName": "一级债基指数",
-      "positioning": "适合于任何时间",
+      "positioning": "择时卖出机制可以控制回撤，不同资产之间也可以进行对冲",
       "tags": [
         "高夏普",
         "回撤可控",
         "全天候收益"
       ],
-      "outlookStars": 5,
+      "outlookStars": 2,
       "annualReturn": 6.91,
-      "winRate": 65.38,
+      "winRate": 100,
       "maxDrawdown": 1.87,
       "volatilityValue": 1.86,
       "sharpe": 3.6888,
-      "monthlyWinRate": 100.0,
+      "monthlyWinRate": 65.38,
       "suitableFor": [
         "适合于任何时间"
       ],
@@ -557,7 +609,12 @@
         "回撤可控",
         "全天候收益"
       ],
-      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。"
+      "skDate": "20230803",
+      "skFile": null,
+      "fileName": null,
+      "fileDate": null,
+      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。",
+      "strategyQuarterRate": "-0.76%"
     },
     {
       "id": "GS-84",
@@ -566,22 +623,22 @@
       "navCategory": "股指期货",
       "category": "股指期货",
       "productType": "股指期货",
-      "riskLevel": "R4",
-      "riskLevelDisplay": "中高风险",
+      "riskLevel": "R5",
+      "riskLevelDisplay": "高风险",
       "investmentHorizon": "medium_term",
       "investmentHorizonDisplay": "中期配置",
-      "liquidity": "medium",
-      "liquidityDisplay": "中等流动性",
+      "liquidity": "high",
+      "liquidityDisplay": "高流动性",
       "returnExpectation": "balanced",
       "returnExpectationDisplay": "追求平衡收益",
-      "volatility": "medium",
-      "volatilityDisplay": "中等波动",
+      "volatility": "low",
+      "volatilityDisplay": "低波动",
       "structure": "单策略",
       "owner": "衍生品-李辰",
       "startDate": "2020-01-01",
       "logicSummary": "1.首先构建个股行为金融价量因子，然后基于成分股等权合成宽基指数的价量因子。\n2.根据价量因子打分构建IF,IC,IM三个股指期货的多空组合。\n3.对多个多空组合信号按照一定的权重叠加。",
       "benchmarkName": "理财收益",
-      "positioning": "股票市场高波动行情中预期收益更高。\n大小盘风格差异较大时收益较高。",
+      "positioning": "持仓时间偏短且仓位无多头敞口，短期大幅回撤概率较小。",
       "tags": [
         "绝对收益",
         "高频信号",
@@ -590,11 +647,11 @@
       ],
       "outlookStars": 5,
       "annualReturn": 18.08,
-      "winRate": 85.71,
+      "winRate": 100,
       "maxDrawdown": 2.75,
       "volatilityValue": 3.89,
       "sharpe": 6.5682,
-      "monthlyWinRate": 100.0,
+      "monthlyWinRate": 85.71,
       "suitableFor": [
         "股票市场高波动行情中预期收益更高。\n大小盘风格差异较大时收益较高。"
       ],
@@ -605,7 +662,12 @@
         "风格趋势跟随",
         "无权益净敞口"
       ],
-      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。"
+      "skDate": "20230803",
+      "skFile": null,
+      "fileName": null,
+      "fileDate": null,
+      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。",
+      "strategyQuarterRate": "0.00%"
     },
     {
       "id": "GS-85",
@@ -614,12 +676,12 @@
       "navCategory": "股指期货",
       "category": "股指期货",
       "productType": "股指期货",
-      "riskLevel": "R4",
-      "riskLevelDisplay": "中高风险",
+      "riskLevel": "R5",
+      "riskLevelDisplay": "高风险",
       "investmentHorizon": "medium_term",
       "investmentHorizonDisplay": "中期配置",
-      "liquidity": "medium",
-      "liquidityDisplay": "中等流动性",
+      "liquidity": "high",
+      "liquidityDisplay": "高流动性",
       "returnExpectation": "balanced",
       "returnExpectationDisplay": "追求平衡收益",
       "volatility": "medium",
@@ -629,19 +691,19 @@
       "startDate": "2018-01-01",
       "logicSummary": "1.根据指数波动率及涨跌幅，构建基于Delta仓位变化的股指复制买入平值看涨期权仓位。2,根据股指多周期技术指标、期权合约相关指标、市场结构相关指标等，构建择时增强信号。",
       "benchmarkName": "理财收益",
-      "positioning": "适合熊市",
+      "positioning": "策略根据市场变化动态调整仓位，在市场不利环境下，通过快速降低仓位控制回撤",
       "tags": [
         "期权复制",
         "股指择时",
         "防御型策略"
       ],
-      "outlookStars": 5,
+      "outlookStars": 2,
       "annualReturn": 4.42,
-      "winRate": 40.91,
+      "winRate": 60,
       "maxDrawdown": 15.54,
       "volatilityValue": 10.85,
       "sharpe": 0.2844,
-      "monthlyWinRate": 60.0,
+      "monthlyWinRate": 40.91,
       "suitableFor": [
         "适合熊市"
       ],
@@ -651,7 +713,12 @@
         "股指择时",
         "防御型策略"
       ],
-      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。"
+      "skDate": "20230803",
+      "skFile": null,
+      "fileName": null,
+      "fileDate": null,
+      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。",
+      "strategyQuarterRate": "0.00%"
     },
     {
       "id": "GS-86",
@@ -659,7 +726,7 @@
       "name": "逆向股基优选",
       "navCategory": "股基FOF",
       "category": "股基FOF",
-      "productType": "股基fof",
+      "productType": "股基FOF",
       "riskLevel": "R4",
       "riskLevelDisplay": "中高风险",
       "investmentHorizon": "medium_term",
@@ -675,7 +742,7 @@
       "startDate": "2016-04-01",
       "logicSummary": "1.首先构建股基特征因子(低beta、低波、隐性交易、择时选股因子等)，\n2.然后基于持仓和净值对全市场股基，滚动计算时序因子暴露。\n3.根据因子暴露与打分，优选逆向策略股基。\n4.在打分前50只基金进行基金经理调研评估，剔除投资策略、经理管理等负向影响因素，确定20-30只基金，构建FOF组合。",
       "benchmarkName": "万得偏股混合型基金指数",
-      "positioning": "震荡、下跌市以及价值风格占优市场",
+      "positioning": "持仓周期较长，季度调仓，低beta和低波保证下行波动小于同类股基和沪深300。",
       "tags": [
         "股基优选",
         "低beta",
@@ -683,16 +750,15 @@
         "逆向",
         "garp风格"
       ],
-      "outlookStars": 5,
-      "annualReturn": 10.0,
-      "winRate": 58.62,
+      "outlookStars": 3,
+      "annualReturn": 10,
+      "winRate": 66.67,
       "maxDrawdown": 23.19,
       "volatilityValue": 11.63,
       "sharpe": 0.4311,
-      "monthlyWinRate": 66.67,
+      "monthlyWinRate": 58.62,
       "suitableFor": [
-        "震荡",
-        "下跌市以及价值风格占优市场"
+        "震荡、下跌市以及价值风格占优市场"
       ],
       "notSuitableFor": [],
       "matchKeywords": [
@@ -702,7 +768,12 @@
         "逆向",
         "garp风格"
       ],
-      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。"
+      "skDate": "20230803",
+      "skFile": null,
+      "fileName": null,
+      "fileDate": null,
+      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。",
+      "strategyQuarterRate": "-6.15%"
     },
     {
       "id": "GS-87",
@@ -710,13 +781,13 @@
       "name": "纯粹价值",
       "navCategory": "股票",
       "category": "股票",
-      "productType": "股票",
+      "productType": "价值",
       "riskLevel": "R5",
       "riskLevelDisplay": "高风险",
       "investmentHorizon": "medium_term",
       "investmentHorizonDisplay": "中期配置",
-      "liquidity": "medium",
-      "liquidityDisplay": "中等流动性",
+      "liquidity": "high",
+      "liquidityDisplay": "高流动性",
       "returnExpectation": "balanced",
       "returnExpectationDisplay": "追求平衡收益",
       "volatility": "medium",
@@ -726,15 +797,15 @@
       "startDate": "2017-01-01",
       "logicSummary": "从中期视角审视公司，选择盈利稳定、长期高分红意愿的公司构成选股池，择其中估值极低的个券构成最终组合",
       "benchmarkName": "理财收益",
-      "positioning": "适合于任何时间",
+      "positioning": "个股低估值控风险，整体根据估值与趋势控仓位。",
       "tags": [
         "量化",
         "低估值",
         "低Beta"
       ],
-      "outlookStars": 5,
-      "annualReturn": 0.0,
-      "winRate": 0.0,
+      "outlookStars": 3,
+      "annualReturn": null,
+      "winRate": null,
       "maxDrawdown": null,
       "volatilityValue": null,
       "sharpe": null,
@@ -748,7 +819,12 @@
         "低估值",
         "低Beta"
       ],
-      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。"
+      "skDate": null,
+      "skFile": null,
+      "fileName": null,
+      "fileDate": null,
+      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。",
+      "strategyQuarterRate": "-0.90%"
     },
     {
       "id": "GS-88",
@@ -756,13 +832,13 @@
       "name": "红利低波",
       "navCategory": "股票",
       "category": "股票",
-      "productType": "股票",
+      "productType": "价值",
       "riskLevel": "R5",
       "riskLevelDisplay": "高风险",
       "investmentHorizon": "medium_term",
       "investmentHorizonDisplay": "中期配置",
-      "liquidity": "medium",
-      "liquidityDisplay": "中等流动性",
+      "liquidity": "high",
+      "liquidityDisplay": "高流动性",
       "returnExpectation": "balanced",
       "returnExpectationDisplay": "追求平衡收益",
       "volatility": "medium",
@@ -772,22 +848,21 @@
       "startDate": "2017-01-01",
       "logicSummary": "1.选出连续多年分红稳定，红利支付率适中且股息率正增长的股票得到红利股票池。\n2.从红利股票池中精选高股息、低波动的50只股票作为样本，以股息率加权构建组合。其中波动率使用基于分钟数据计算的高频波动率因子。",
       "benchmarkName": "理财收益",
-      "positioning": "适合震荡下行周期、红利风格行情，无产业主线的周期",
+      "positioning": "股息组合自带估值择时，会避开过高估值的股票。低波特征保证组合较少参与交易异常的股票，控制组合整体波动的前提下获取红利收益。",
       "tags": [
         "红利",
         "低股债相关性",
         "稳健"
       ],
-      "outlookStars": 5,
-      "annualReturn": 0.0,
-      "winRate": 0.0,
+      "outlookStars": 3,
+      "annualReturn": null,
+      "winRate": null,
       "maxDrawdown": null,
       "volatilityValue": null,
       "sharpe": null,
       "monthlyWinRate": null,
       "suitableFor": [
-        "适合震荡下行周期",
-        "红利风格行情，无产业主线的周期"
+        "适合震荡下行周期、红利风格行情，无产业主线的周期"
       ],
       "notSuitableFor": [],
       "matchKeywords": [
@@ -795,7 +870,12 @@
         "低股债相关性",
         "稳健"
       ],
-      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。"
+      "skDate": null,
+      "skFile": null,
+      "fileName": null,
+      "fileDate": null,
+      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。",
+      "strategyQuarterRate": "-1.76%"
     },
     {
       "id": "GS-89",
@@ -803,7 +883,7 @@
       "name": "行业轮动月频",
       "navCategory": "ETF",
       "category": "ETF",
-      "productType": "etf",
+      "productType": "ETF",
       "riskLevel": "R4",
       "riskLevelDisplay": "中高风险",
       "investmentHorizon": "medium_term",
@@ -819,15 +899,15 @@
       "startDate": "",
       "logicSummary": "策略根据各行业景气度变化、机构资金偏好、市场微观结构、拥挤度等维度指标，优选高景气度、资金追逐、趋势强且拥挤度低的行业，选择相应的ETF进行轮动配置。",
       "benchmarkName": "中证800",
-      "positioning": "策略适用于beta行情，高波动行情收益更高。",
+      "positioning": "策略是相对收益策略，具有一定的回撤。",
       "tags": [
         "相对收益",
         "月频换仓",
         "行业轮动"
       ],
-      "outlookStars": 5,
-      "annualReturn": 0.0,
-      "winRate": 0.0,
+      "outlookStars": 3,
+      "annualReturn": null,
+      "winRate": null,
       "maxDrawdown": null,
       "volatilityValue": null,
       "sharpe": null,
@@ -841,7 +921,12 @@
         "月频换仓",
         "行业轮动"
       ],
-      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。"
+      "skDate": null,
+      "skFile": null,
+      "fileName": null,
+      "fileDate": null,
+      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。",
+      "strategyQuarterRate": "-11.42%"
     },
     {
       "id": "GS-90",
@@ -849,7 +934,7 @@
       "name": "多因子轮动股基FOF",
       "navCategory": "股基FOF",
       "category": "股基FOF",
-      "productType": "股基fof",
+      "productType": "股基FOF",
       "riskLevel": "R4",
       "riskLevelDisplay": "中高风险",
       "investmentHorizon": "medium_term",
@@ -865,13 +950,13 @@
       "startDate": "2017-01-04",
       "logicSummary": "基于宏观因子、风格因子、行业偏离因子和beta因子进行大类股基品种比较，通过多因子优选股基，实现不同风格、高低beta间切换，实现相对中证800的稳定超额表现。",
       "benchmarkName": "中证800",
-      "positioning": "适用于任何市场",
+      "positioning": "月度调仓，下跌有限，上涨弹性高",
       "tags": [
         "风格轮动、股基优选、garp风格、高夏普"
       ],
-      "outlookStars": 5,
-      "annualReturn": 0.0,
-      "winRate": 0.0,
+      "outlookStars": 3,
+      "annualReturn": null,
+      "winRate": null,
       "maxDrawdown": null,
       "volatilityValue": null,
       "sharpe": null,
@@ -883,7 +968,12 @@
       "matchKeywords": [
         "风格轮动、股基优选、garp风格、高夏普"
       ],
-      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。"
+      "skDate": null,
+      "skFile": null,
+      "fileName": null,
+      "fileDate": null,
+      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。",
+      "strategyQuarterRate": "-6.97%"
     },
     {
       "id": "GS-91",
@@ -891,7 +981,7 @@
       "name": "ETF风格轮动",
       "navCategory": "ETF",
       "category": "ETF",
-      "productType": "etf",
+      "productType": "ETF",
       "riskLevel": "R4",
       "riskLevelDisplay": "中高风险",
       "investmentHorizon": "medium_term",
@@ -907,15 +997,15 @@
       "startDate": "2015-01-01",
       "logicSummary": "大盘板块、价值板块与经济景气度相关性较高，小盘板块、成长板块与流动性相关性较高。市场风格通常会在一段时间内出现持续强势现象。综合宏观、中观等指标，从经济景气、流动性、市场情绪等维度构建大小盘轮动策略与价值成长轮动策略。",
       "benchmarkName": "中证800",
-      "positioning": "策略适用于beta行情，高波动行情收益更高。",
+      "positioning": "策略是相对收益策略，具有一定的回撤。",
       "tags": [
         "相对收益",
         "每天跟踪",
         "不定期换仓"
       ],
-      "outlookStars": 5,
-      "annualReturn": 0.0,
-      "winRate": 0.0,
+      "outlookStars": 3,
+      "annualReturn": null,
+      "winRate": null,
       "maxDrawdown": null,
       "volatilityValue": null,
       "sharpe": null,
@@ -929,7 +1019,12 @@
         "每天跟踪",
         "不定期换仓"
       ],
-      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。"
+      "skDate": null,
+      "skFile": null,
+      "fileName": null,
+      "fileDate": null,
+      "standardRiskNotice": "历史收益不代表未来表现，投资有风险。",
+      "strategyQuarterRate": "-2.71%"
     }
   ]
 }
