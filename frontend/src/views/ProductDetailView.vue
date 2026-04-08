@@ -612,6 +612,40 @@ function startAIChat() {
   router.push('/chat')
 }
 
+// 从 timeseries 计算指定周期的真实收益率（百分比）
+function calcPeriodReturn(ts: TimeSeriesPoint[], periodKey: string): number {
+  if (!ts || ts.length < 2) return 0
+  const sorted = [...ts].sort((a, b) => a.date.localeCompare(b.date))
+  const endEntry = sorted[sorted.length - 1]
+
+  const daysMap: Record<string, number> = { week: 7, month: 30, quarter: 90, year: 365 }
+  const days = daysMap[periodKey] ?? 30
+
+  // 解析结束日期 YYYYMMDD -> Date
+  const ey = parseInt(endEntry.date.slice(0, 4), 10)
+  const em = parseInt(endEntry.date.slice(4, 6), 10) - 1
+  const ed = parseInt(endEntry.date.slice(6, 8), 10)
+  const endDateObj = new Date(ey, em, ed)
+
+  // 目标开始日期 = 结束日期往前推 days 天，且不早于数据首日
+  const firstDateObj = new Date(parseInt(sorted[0].date.slice(0, 4), 10), parseInt(sorted[0].date.slice(4, 6), 10) - 1, parseInt(sorted[0].date.slice(6, 8), 10))
+  const targetStartMs = endDateObj.getTime() - days * 86400000
+  const startDateObj = new Date(Math.max(targetStartMs, firstDateObj.getTime()))
+  const startDateStr = `${startDateObj.getFullYear()}${String(startDateObj.getMonth() + 1).padStart(2, '0')}${String(startDateObj.getDate()).padStart(2, '0')}`
+
+  // 找最接近目标开始日期的 entry（第一个 date >= startDateStr）
+  let startEntry = sorted[0]
+  for (const p of sorted) {
+    if (p.date >= startDateStr) { startEntry = p; break }
+  }
+
+  const startRet = startEntry.ret ?? 0
+  const endRet = endEntry.ret ?? 0
+  // periodReturn = (1+endRet)/(1+startRet) - 1，换算为百分比
+  const periodReturn = ((1 + endRet) / (1 + startRet) - 1) * 100
+  return Math.round(periodReturn * 100) / 100
+}
+
 async function loadAttr() {
   if (!strategy.value || attrLoading.value) return
   attrLoading.value = true
@@ -619,27 +653,33 @@ async function loadAttr() {
   try {
     const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003'
 
-    // 优先 AI 归因（35秒超时），失败则降级到规则引擎
+    // 从 timeseries 计算当前周期的真实收益率
+    const periodReturn = calcPeriodReturn(timeSeries.value, attrPeriod.value)
+    const periodLabel = attrPeriods.find(p => p.key === attrPeriod.value)?.label || '近一月'
+    const payloadBase = {
+      strategy: {
+        name: strategy.value.name,
+        navCategory: strategy.value.navCategory,
+        annualReturn: strategy.value.annualReturn,
+        winRate: strategy.value.winRate,
+        maxDrawdown: (strategy.value as any).maxDrawdown,
+        volatility: (strategy.value as any).volatilityValue,
+        sharpe: (strategy.value as any).sharpe,
+        riskLevel: (strategy.value as any).riskLevel || 'R3',
+        investmentHorizon: (strategy.value as any).investmentHorizon || 'medium_term',
+        logicSummary: strategy.value.logicSummary,
+        tags: strategy.value.tags || [],
+      },
+      period: periodLabel,
+      periodReturn,
+    }
+
+    // 优先 AI 归因（180秒超时），失败则降级到规则引擎
     const aiResp = await fetch(`${base}/api/attribution/ai`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       signal: AbortSignal.timeout(180000),
-      body: JSON.stringify({
-        strategy: {
-          name: strategy.value.name,
-          navCategory: strategy.value.navCategory,
-          annualReturn: strategy.value.annualReturn,
-          winRate: strategy.value.winRate,
-          maxDrawdown: (strategy.value as any).maxDrawdown,
-          volatility: (strategy.value as any).volatilityValue,
-          sharpe: (strategy.value as any).sharpe,
-          riskLevel: (strategy.value as any).riskLevel || 'R3',
-          investmentHorizon: (strategy.value as any).investmentHorizon || 'medium_term',
-          logicSummary: strategy.value.logicSummary,
-          tags: strategy.value.tags || [],
-        },
-        period: attrPeriods.find(p => p.key === attrPeriod.value)?.label || '近一月',
-      }),
+      body: JSON.stringify(payloadBase),
     })
     const aiData = await aiResp.json()
     if (aiResp.ok && aiData.success) {
@@ -649,28 +689,18 @@ async function loadAttr() {
       const fallbackResp = await fetch(`${base}/api/attribution`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          strategy: {
-            name: strategy.value.name,
-            navCategory: strategy.value.navCategory,
-            annualReturn: strategy.value.annualReturn,
-            winRate: strategy.value.winRate,
-            maxDrawdown: (strategy.value as any).maxDrawdown,
-            volatility: (strategy.value as any).volatilityValue,
-            sharpe: (strategy.value as any).sharpe,
-            riskLevel: (strategy.value as any).riskLevel || 'R3',
-            investmentHorizon: (strategy.value as any).investmentHorizon || 'medium_term',
-            logicSummary: strategy.value.logicSummary,
-            tags: strategy.value.tags || [],
-          },
-          period: attrPeriods.find(p => p.key === attrPeriod.value)?.label || '近一月',
-        }),
+        body: JSON.stringify(payloadBase),
       })
       const fallbackData = await fallbackResp.json()
       attrResult.value = fallbackData.data || fallbackData
     }
   } catch {
-    attrResult.value = { analysis: '（归因分析暂时不可用）', strategyName: strategy.value?.name, period: attrPeriods.find(p => p.key === attrPeriod.value)?.label, periodReturn: strategy.value?.annualReturn || 0 }
+    attrResult.value = {
+      analysis: '（归因分析暂时不可用）',
+      strategyName: strategy.value?.name,
+      period: attrPeriods.find(p => p.key === attrPeriod.value)?.label,
+      periodReturn: strategy.value?.annualReturn || 0,
+    }
   } finally {
     attrLoading.value = false
   }
