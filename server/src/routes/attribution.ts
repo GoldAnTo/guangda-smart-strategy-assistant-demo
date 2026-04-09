@@ -212,7 +212,7 @@ router.post('/api/attribution/ai', async (req, res) => {
     const timeout = setTimeout(() => controller.abort(), 180_000) // 3分钟
 
     try {
-      const response = await fetch(`${url}/v1/responses`, {
+      const response = await fetch(`${url}/v1/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -220,7 +220,8 @@ router.post('/api/attribution/ai', async (req, res) => {
         },
         body: JSON.stringify({
           model,
-          input: prompt,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.3,
           max_tokens: 2000
         }),
         signal: controller.signal as any
@@ -234,19 +235,8 @@ router.post('/api/attribution/ai', async (req, res) => {
       }
 
       const json = await response.json() as any
-      // 解析 Responses API 输出格式
-      let raw = ''
-      if (json.output && Array.isArray(json.output)) {
-        const msg = json.output.find((b: any) => b.type === 'message')
-        if (msg?.content) {
-          const textBlock = msg.content.find((b: any) => b.type === 'output_text' || b.type === 'text')
-          raw = textBlock?.text || ''
-        }
-      }
-
-      if (!raw) {
-        raw = JSON.stringify(json)
-      }
+      // Chat Completions 格式：内容在 choices[0].message.content
+      const raw = json.choices?.[0]?.message?.content || ''
 
       // 解析 JSON
       let parsed: any = {}
@@ -259,6 +249,14 @@ router.post('/api/attribution/ai', async (req, res) => {
         parsed = JSON.parse(jsonStr.trim())
       } catch {
         res.status(500).json(errorResponse('AI 返回格式异常，请重试', requestId))
+        return
+      }
+
+      // 校验必要字段
+      const requiredFields = ['marketInsight', 'strategyDriver', 'riskRewardAnalysis', 'configValue', 'summary']
+      const missing = requiredFields.filter(f => !parsed[f])
+      if (missing.length > 0) {
+        res.status(500).json(errorResponse(`AI 返回缺少字段: ${missing.join(', ')}，原始内容: ${raw.slice(0, 200)}`, requestId))
         return
       }
 

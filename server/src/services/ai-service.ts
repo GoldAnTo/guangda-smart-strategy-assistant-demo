@@ -11,7 +11,7 @@ function getModelConfig() {
 }
 
 function isAnthropicFormat(url: string): boolean {
-  return url.includes('anthropic') || url.includes('minimaxi')
+  return url.includes('anthropic')
 }
 
 // 5分钟超时
@@ -67,49 +67,43 @@ async function requestModel(prompt: string, systemContent: string, temperature: 
       throw err
     }
   } else {
-    // OpenAI Responses API 格式（通过代理）
+    // OpenAI Chat Completions 格式（原生 fetch）
     return new Promise((resolve, reject) => {
-      const body = JSON.stringify({
-        model: name,
-        input: (systemContent ? systemContent + '\n\n' : '') + prompt,
-        max_tokens: maxTokens
-      })
+      const messages: { role: string; content: string }[] = []
+      if (systemContent) messages.push({ role: 'system', content: systemContent })
+      messages.push({ role: 'user', content: prompt })
 
-      const options: https.RequestOptions = {
-        hostname: new URL(url).hostname,
-        port: 443,
-        path: '/v1/responses',
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), AI_TIMEOUT_MS)
+
+      fetch(`${url}/v1/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${key}`,
-          'Content-Length': Buffer.byteLength(body)
+          'Authorization': `Bearer ${key}`
         },
-        timeout: AI_TIMEOUT_MS
-      }
-
-      if (proxyAgent) {
-        (options as any).agent = proxyAgent
-      }
-
-      const req = https.request(options, (res) => {
-        let data = ''
-        res.on('data', (chunk) => { data += chunk })
-        res.on('end', () => {
-          if (res.statusCode && res.statusCode >= 400) {
-            reject(new Error(`AI request failed: ${res.statusCode} ${data.slice(0, 200)}`))
-          } else {
-            try { resolve(JSON.parse(data)) }
-            catch { reject(new Error(`Invalid JSON response: ${data.slice(0, 200)}`)) }
-          }
-        })
+        body: JSON.stringify({
+          model: name,
+          messages,
+          temperature,
+          max_tokens: maxTokens
+        }),
+        signal: controller.signal as any
+      }).then(res => {
+        clearTimeout(timer)
+        if (!res.ok) {
+          res.text().then(t => reject(new Error(`AI request failed: ${res.status} ${t.slice(0, 200)}`)))
+        } else {
+          res.json().then(resolve).catch(e => reject(new Error(`Invalid JSON response: ${e.message}`)))
+        }
+      }).catch((err: any) => {
+        clearTimeout(timer)
+        if (err.name === 'AbortError' || String(err.message).includes('aborted')) {
+          reject(new Error(`AI 请求超时，请重试`))
+        } else {
+          reject(err)
+        }
       })
-
-      req.on('error', (err) => reject(err))
-      req.on('timeout', () => { req.destroy(); reject(new Error(`AI 请求超时，请重试`)) })
-
-      req.write(body)
-      req.end()
     })
   }
 }
@@ -132,15 +126,38 @@ function extractAnthropicContent(data: any): string {
 }
 
 function extractOpenAIContent(data: any): string {
-  // Responses API: { output: [{ type: 'message', content: [{ type: 'output_text', text: '...' }] }] }
+  // Responses API: { output: [{ type: 'message'|'reasoning'|'text', ... }] }
+  // zxcode.vip 返回的 output 里第一个 block 可能是 reasoning/text，需要兼容所有类型
   if (data.output && Array.isArray(data.output)) {
-    const messageBlock = data.output.find((b: any) => b.type === 'message')
-    if (messageBlock?.content && Array.isArray(messageBlock.content)) {
-      const textBlock = messageBlock.content.find((b: any) => b.type === 'output_text' || b.type === 'text')
-      if (textBlock?.text) return textBlock.text
+    for (const block of data.output) {
+      // 1. message block → content 数组里找 output_text / text
+      if (block.type === 'message' && Array.isArray(block.content)) {
+        const textBlock = block.content.find((b: any) => b.type === 'output_text' || b.type === 'text')
+        if (textBlock?.text) return textBlock.text
+      }
+      // 2. reasoning block → summary_text
+      if (block.type === 'reasoning' && block.summary_text) {
+        return block.summary_text
+      }
+      // 3. 直接 text block
+      if (block.type === 'text' && block.text) {
+        return block.text
+      }
+    }
+    // 兜底：遍历所有 block 的 content
+    for (const block of data.output) {
+      if (block.content && Array.isArray(block.content)) {
+        const t = block.content.find((b: any) => b.type === 'output_text' || b.type === 'text')
+        if (t?.text) return t.text
+      }
     }
   }
-  // Chat Completions 兼容
+  // 4. Responses API top-level text.raw（部分实现不走 output）
+  if (data.text && typeof data.text === 'object') {
+    if (data.text.raw) return data.text.raw
+    if (data.text.content) return data.text.content
+  }
+  // 5. Chat Completions 兼容
   return data.choices?.[0]?.message?.content || ''
 }
 
@@ -165,6 +182,7 @@ export const aiService = {
   async generateText(prompt: string): Promise<string> {
     const { url } = getModelConfig()
     const data = await requestModel(prompt, CHAT_SYSTEM_PROMPT, 0.3, 4000)
+    console.log('[generateText] raw response:', JSON.stringify(data).slice(0, 500))
     return isAnthropicFormat(url || '')
       ? extractAnthropicContent(data)
       : extractOpenAIContent(data)

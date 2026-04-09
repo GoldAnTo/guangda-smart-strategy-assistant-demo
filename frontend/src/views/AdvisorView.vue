@@ -284,7 +284,7 @@
                     <tr>
                       <td class="ct-metric">年化收益</td>
                       <td v-for="item in primaryRecs.slice(0, 3)" :key="item.strategy.id" class="ct-val gain">
-                        {{ item.strategy.annualReturn >= 0 ? '+' : '' }}{{ item.strategy.annualReturn.toFixed(2) }}%
+                        {{ item.strategy.annualReturn >= 0 ? '+' : '' }}{{ (item.strategy.annualReturn ?? 0).toFixed(2) }}%
                       </td>
                     </tr>
                     <tr>
@@ -296,7 +296,7 @@
                     <tr>
                       <td class="ct-metric">胜率</td>
                       <td v-for="item in primaryRecs.slice(0, 3)" :key="item.strategy.id" class="ct-val">
-                        {{ item.strategy.winRate.toFixed(0) }}%
+                        {{ (item.strategy.winRate ?? 0).toFixed(0) }}%
                       </td>
                     </tr>
                     <tr>
@@ -384,7 +384,7 @@
                 <span class="attr-strategy-name">{{ attributionResult.strategyName }}</span>
                 <span class="attr-period">{{ attributionResult.period }}</span>
                 <span class="attr-return" :class="attributionResult.periodReturn >= 0 ? 'gain' : 'loss'">
-                  {{ attributionResult.periodReturn >= 0 ? '+' : '' }}{{ attributionResult.periodReturn.toFixed(2) }}%
+                  {{ attributionResult.periodReturn >= 0 ? '+' : '' }}{{ (attributionResult.periodReturn ?? 0).toFixed(2) }}%
                 </span>
               </div>
               <div class="attr-analysis">{{ attributionResult.analysis }}</div>
@@ -425,11 +425,11 @@
                   </div>
                   <div class="rc-metrics">
                     <div class="rc-metric">
-                      <span class="rc-mv gain">{{ item.strategy.annualReturn >= 0 ? '+' : '' }}{{ item.strategy.annualReturn.toFixed(2) }}%</span>
+                      <span class="rc-mv gain">{{ item.strategy.annualReturn >= 0 ? '+' : '' }}{{ (item.strategy.annualReturn ?? 0).toFixed(2) }}%</span>
                       <span class="rc-ml">年化收益</span>
                     </div>
                     <div class="rc-metric">
-                      <span class="rc-mv">{{ item.strategy.winRate.toFixed(0) }}%</span>
+                      <span class="rc-mv">{{ (item.strategy.winRate ?? 0).toFixed(0) }}%</span>
                       <span class="rc-ml">胜率</span>
                     </div>
                     <div class="rc-metric">
@@ -487,7 +487,7 @@
                   </div>
                   <div class="rc-metrics compact-metrics">
                     <div class="rc-metric">
-                      <span class="rc-mv gain">{{ item.strategy.annualReturn >= 0 ? '+' : '' }}{{ item.strategy.annualReturn.toFixed(2) }}%</span>
+                      <span class="rc-mv gain">{{ item.strategy.annualReturn >= 0 ? '+' : '' }}{{ (item.strategy.annualReturn ?? 0).toFixed(2) }}%</span>
                       <span class="rc-ml">年化</span>
                     </div>
                     <div class="rc-metric">
@@ -670,6 +670,7 @@ async function handleAnalyze() {
     })
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
     const data = await resp.json()
+    console.log('[analyze] response success, recommendations count:', (data.data || data).recommendations?.length)
     const unwrapped = data.data || data
     result.value = {
       profile: unwrapped.profile,
@@ -733,21 +734,21 @@ async function loadAttribution() {
   attributionResult.value = null
   try {
     const item = primaryRecs.value.find((r: any) => r.strategy.id === attributionStrategyId.value)
-    if (!item) return
+    if (!item) { console.warn('[attribution] no item found'); return }
     const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003'
+    console.log('[attribution] calling AI attribution for', item.strategy.name)
 
-    // 优先调用 AI 归因（30秒超时），失败则降级到规则归因
     const aiResp = await fetch(`${base}/api/attribution/ai`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      signal: AbortSignal.timeout(180000),
       body: JSON.stringify({ strategy: item.strategy }),
     })
+    console.log('[attribution] AI attribution response status:', aiResp.status)
     const aiData = await aiResp.json()
     if (aiResp.ok && aiData.success) {
       attributionResult.value = aiData.data || aiData
     } else {
-      // AI 失败，降级到规则引擎
+      console.warn('[attribution] AI attribution failed, falling back to rule engine')
       const fallbackResp = await fetch(`${base}/api/attribution`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -756,6 +757,8 @@ async function loadAttribution() {
       const fallbackData = await fallbackResp.json()
       attributionResult.value = fallbackData.data || fallbackData
     }
+  } catch (e) {
+    console.error('[attribution] error:', e)
   } finally {
     attributionLoading.value = false
   }

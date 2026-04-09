@@ -120,17 +120,31 @@ function calcLiquidityScore(profile: CustomerProfile, strategy: Strategy): { sco
   return { score, max: rulesData.scoreWeights.liquidityMatch, warnings }
 }
 
+// 中文 productType → 规则引擎英文 key 映射
+const productTypeMap: Record<string, string> = {
+  '低价转债': 'convertible_bond',
+  '成长': 'equity_active',
+  '价值': 'equity_value',
+  'ETF': 'etf_sector',
+  '商品': 'commodity',
+  '混合型': 'multi_asset',
+  '股指期货': 'derivatives',
+  '股基FOF': 'equity_fof',
+}
+
 function calcReturnScore(profile: CustomerProfile, strategy: Strategy): { score: number; max: number } {
   const rRules = (rulesData.returnExpectationMatching as Record<string, any>)[profile.returnExpectation]
   if (!rRules) return { score: 0, max: rulesData.scoreWeights.returnExpectationMatch }
-  const score = rRules.scoreMap[strategy.productType] ?? 0
+  const mapped = productTypeMap[strategy.productType] ?? strategy.productType
+  const score = rRules.scoreMap[mapped] ?? 0
   return { score, max: rulesData.scoreWeights.returnExpectationMatch }
 }
 
 function calcBalanceBonus(profile: CustomerProfile, strategy: Strategy): { score: number; max: number } {
   const bonus = rulesData.scoreWeights.assetBalanceBonus
   if (strategy.tags.includes('低股债相关性') || strategy.tags.includes('商品')) return { score: bonus, max: bonus }
-  if (strategy.productType.includes('multi_asset')) return { score: bonus, max: bonus }
+  const mapped = productTypeMap[strategy.productType] ?? strategy.productType
+  if (mapped === 'multi_asset' || mapped === 'commodity' || strategy.tags.includes('低股债相关性')) return { score: bonus, max: bonus }
   return { score: 0, max: bonus }
 }
 
